@@ -1,0 +1,287 @@
+.container {
+  padding: 20rpx;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.header-card {
+  background: linear-gradient(135deg, #4CAF50 0%, #81C784 100%);
+  border-radius: 24rpx;
+  padding: 40rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 8rpx 20rpx rgba(76, 175, 80, 0.3);
+}
+
+.calorie-ring-container {
+  position: relative;
+  width: 320rpx;
+  height: 320rpx;
+  margin: 0 auto 30rpx;
+}
+
+.calorie-ring {
+  width: 320rpx;
+  height: 320rpx;
+}
+
+.calorie-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.calorie-number {
+  font-size: 64rpx;
+  font-weight: bold;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.calorie-number.over-goal {
+  color: #FFE082;
+}
+
+.calorie-unit {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 8rpx;
+}
+
+.calorie-goal {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 10rpx;
+}
+
+.calorie-stats {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+}
+
+.stat-divider {
+  width: 2rpx;
+  height: 60rpx;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.quick-add-section {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 20rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.record-count {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.meal-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20rpx;
+}
+
+.meal-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 16rpx;
+  background-color: #f8f8f8;
+  border-radius: 16rpx;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.meal-btn:active {
+  transform: scale(0.95);
+  background-color: #f0f0f0;
+}
+
+.meal-icon {
+  font-size: 48rpx;
+  margin-bottom: 10rpx;
+}
+
+.meal-name {
+  font-size: 26rpx;
+  color: #333333;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+
+.meal-cal {
+  font-size: 20rpx;
+  color: #999999;
+}
+
+.meal-btn.breakfast {
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%);
+}
+
+.meal-btn.lunch {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+.meal-btn.dinner {
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+}
+
+.meal-btn.snack {
+  background: linear-gradient(135deg, #FCE4EC 0%, #F8BBD9 100%);
+}
+
+.records-section {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #999999;
+  margin-bottom: 16rpx;
+}
+
+.empty-hint {
+  font-size: 24rpx;
+  color: #cccccc;
+}
+
+.meal-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 30rpx;
+}
+
+.meal-group {
+  border-bottom: 1rpx solid #f0f0f0;
+  padding-bottom: 20rpx;
+}
+
+.meal-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.meal-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.meal-group-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #4CAF50;
+}
+
+.meal-group-total {
+  font-size: 24rpx;
+  color: #666666;
+}
+
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.record-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  background-color: #f8f8f8;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.record-item:active {
+  background-color: #f0f0f0;
+}
+
+.record-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.record-name {
+  font-size: 28rpx;
+  color: #333333;
+  font-weight: 500;
+}
+
+.record-detail {
+  font-size: 22rpx;
+  color: #999999;
+}
+
+.record-time {
+  font-size: 22rpx;
+  color: #cccccc;
+  margin-right: 20rpx;
+}
+
+.delete-btn {
+  padding: 12rpx 24rpx;
+  background-color: #ff4757;
+  color: #ffffff;
+  font-size: 22rpx;
+  border-radius: 8rpx;
+  border: none;
+}

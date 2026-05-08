@@ -1,0 +1,85 @@
+<view class="container">
+  <view class="header-card">
+    <view class="calorie-ring-container">
+      <canvas canvas-id="calorieRing" id="calorieRing" class="calorie-ring"></canvas>
+      <view class="calorie-center">
+        <text class="calorie-number {{isOverGoal ? 'over-goal' : ''}}">{{todayTotal}}</text>
+        <text class="calorie-unit">千卡</text>
+        <text class="calorie-goal">目标 {{goal}}</text>
+      </view>
+    </view>
+
+    <view class="calorie-stats">
+      <view class="stat-item">
+        <text class="stat-value">{{remaining}}</text>
+        <text class="stat-label">剩余</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{percentage}}%</text>
+        <text class="stat-label">完成</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="quick-add-section">
+    <text class="section-title">快速添加</text>
+    <view class="meal-buttons">
+      <button class="meal-btn breakfast" data-meal="breakfast" bindtap="addFood">
+        <text class="meal-icon">☀️</text>
+        <text class="meal-name">早餐</text>
+        <text class="meal-cal">{{getMealTotal('breakfast')}}千卡</text>
+      </button>
+      <button class="meal-btn lunch" data-meal="lunch" bindtap="addFood">
+        <text class="meal-icon">🌞</text>
+        <text class="meal-name">午餐</text>
+        <text class="meal-cal">{{getMealTotal('lunch')}}千卡</text>
+      </button>
+      <button class="meal-btn dinner" data-meal="dinner" bindtap="addFood">
+        <text class="meal-icon">🌙</text>
+        <text class="meal-name">晚餐</text>
+        <text class="meal-cal">{{getMealTotal('dinner')}}千卡</text>
+      </button>
+      <button class="meal-btn snack" data-meal="snack" bindtap="addFood">
+        <text class="meal-icon">🍎</text>
+        <text class="meal-name">加餐</text>
+        <text class="meal-cal">{{getMealTotal('snack')}}千卡</text>
+      </button>
+    </view>
+  </view>
+
+  <view class="records-section">
+    <view class="section-header">
+      <text class="section-title">今日记录</text>
+      <text class="record-count">{{records.length}} 条</text>
+    </view>
+
+    <view wx:if="{{records.length === 0}}" class="empty-state">
+      <text class="empty-text">暂无记录</text>
+      <text class="empty-hint">点击上方按钮添加今日饮食</text>
+    </view>
+
+    <view wx:else class="meal-groups">
+      <block wx:for="{{['breakfast', 'lunch', 'dinner', 'snack']}}" wx:key="{{item}}">
+        <view wx:if="{{groupedRecords[item].length > 0}}" class="meal-group">
+          <view class="meal-group-header">
+            <text class="meal-group-title">{{mealTypes[item]}}</text>
+            <text class="meal-group-total">{{getMealTotal(item)}}千卡</text>
+          </view>
+          <view class="record-list">
+            <view wx:for="{{groupedRecords[item]}}" wx:key="{{item.id}}" class="record-item">
+              <view class="record-info">
+                <text class="record-name">{{item.foodName}}</text>
+                <text class="record-detail">{{item.portion}}{{item.portionUnit}} · {{item.calorie}}千卡</text>
+              </view>
+              <text class="record-time">{{format.formatTime(item.createdAt)}}</text>
+              <view class="delete-btn" data-id="{{item.id}}" bindtap="deleteRecord">
+                <text>删除</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>
