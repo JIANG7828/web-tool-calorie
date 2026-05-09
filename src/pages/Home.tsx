@@ -1,255 +1,307 @@
-import { useState } from 'react';
+import { Card, Space, Progress, Button, Tag, Statistic } from 'antd';
+import { FireOutlined, FireFilled, PlusOutlined, CoffeeOutlined, CloudOutlined, ThunderboltOutlined, AppstoreOutlined, AimOutlined, TrophyOutlined } from '@ant-design/icons';
 import { useCalorieStore } from '../store/calorieStore';
-import { getBMR, getTDEE, getTargetCal, getSuggestion } from '../utils/calorie';
-import { Food, searchFood, FOOD_DATABASE } from '../utils/foodDatabase';
+import { formatDate } from '../utils/calorie';
+import { calculateStreak, calculateAchievementStats } from '../utils/checkInSystem';
+import AddFoodModal from './AddFoodModal';
+import EvaluationPage from './EvaluationPage';
+import WaterSuccessModal from './WaterSuccessModal';
+import SmartSuggestion from '../components/SmartSuggestion';
+import { useState, useEffect } from 'react';
 
-function Home() {
-  const { userSettings, todayRecords, addFoodRecord, removeFoodRecord, getTodayTotalCalories, getTodayExerciseCalories, getNetCalories } = useCalorieStore();
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+const MEAL_TYPES = [
+  { key: 'breakfast', label: '早餐', icon: <CoffeeOutlined />, color: '#FAAD14' },
+  { key: 'lunch', label: '午餐', icon: <ThunderboltOutlined />, color: '#52C41A' },
+  { key: 'dinner', label: '晚餐', icon: <CloudOutlined />, color: '#1677FF' },
+  { key: 'snack', label: '加餐', icon: <AppstoreOutlined />, color: '#FF4D4F' },
+  { key: 'exercise', label: '运动', icon: <FireOutlined />, color: '#FAAD14' },
+];
+
+const getTargetCalorie = (userSettings: any) => {
+  const weight = userSettings.weight || 55;
+  const activityLevel = userSettings.activityLevel || 1.2;
+  const bmr = weight * 22;
+  const tdee = bmr * activityLevel;
+  if (userSettings.target === 'fat') return Math.round(tdee - 400);
+  if (userSettings.target === 'muscle') return Math.round(tdee + 300);
+  return Math.round(tdee);
+};
+
+export default function Home() {
+  const {
+    userSettings,
+    todayRecords,
+    todayExercises,
+    getTodayTotalCalories,
+    getTodayExerciseCalories,
+    getTodayMacros,
+    evaluateLastMeal,
+    todayWaterCount,
+    addWater,
+    checkIns,
+  } = useCalorieStore();
+
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
-  const [portion, setPortion] = useState(100);
+  const [showEvaluation, setShowEvaluation] = useState(false);
+  const [evaluationData, setEvaluationData] = useState<any>(null);
+  const [showWaterSuccess, setShowWaterSuccess] = useState(false);
+  const [lastWaterCount, setLastWaterCount] = useState(0);
+  const [showSmartSuggestion, setShowSmartSuggestion] = useState(true);
+  const [animateProgress, setAnimateProgress] = useState(false);
 
-  const todayDate = new Date().toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
+  const targetCal = getTargetCalorie(userSettings);
+  const totalCal = getTodayTotalCalories();
+  const macros = getTodayMacros();
+  const remaining = targetCal - totalCal;
+  const progress = Math.min((totalCal / targetCal) * 100, 100);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimateProgress(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const startOfWeek = new Date(selectedDate);
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startOfWeek);
+    d.setDate(d.getDate() + i);
+    return d;
   });
 
-  const bmr = getBMR(userSettings.gender, userSettings.weight, userSettings.height, userSettings.age);
-  const tdee = getTDEE(bmr, userSettings.activityLevel);
-  const targetCal = getTargetCal(tdee, userSettings.target);
-  const todayIntake = getTodayTotalCalories();
-  const todayExercise = getTodayExerciseCalories();
-  const netCalories = getNetCalories();
-  const remaining = targetCal - netCalories;
-  const suggestion = getSuggestion(targetCal, netCalories);
+  const stats = calculateAchievementStats(checkIns, userSettings.startDate ? new Date(userSettings.startDate) : new Date());
+  const consecutiveDays = calculateStreak(checkIns);
 
-  const targetLabel = {
-    fat: '减脂',
-    keep: '维持',
-    muscle: '增肌'
-  };
-
-  const handleAddFood = () => {
-    if (selectedFood) {
-      const calorie = Math.round((selectedFood.calorie / 100) * portion);
-      addFoodRecord({
-        name: selectedFood.name,
-        calorie,
-        time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-      });
-      setShowAddModal(false);
-      setSelectedFood(null);
-      setPortion(100);
-      setSearchKeyword('');
+  useEffect(() => {
+    if (totalCal >= targetCal * 0.8 && todayRecords.length > 0) {
+      const eval_ = evaluateLastMeal();
+      if (eval_) {
+        setEvaluationData(eval_);
+        setShowEvaluation(true);
+      }
     }
+  }, [totalCal, targetCal, todayRecords.length]);
+
+  const handleAddWater = () => {
+    addWater();
+    setLastWaterCount(todayWaterCount + 1);
+    setShowWaterSuccess(true);
   };
 
-  const filteredFoods = searchKeyword
-    ? searchFood(searchKeyword)
-    : FOOD_DATABASE.slice(0, 10);
+  const macroConfig = [
+    { key: 'protein' as const, label: '蛋白质', target: 150, color: '#1677FF', bgColor: '#E6F4FF' },
+    { key: 'fat' as const, label: '脂肪', target: 60, color: '#FAAD14', bgColor: '#FFFBE6' },
+    { key: 'carbs' as const, label: '碳水', target: 300, color: '#52C41A', bgColor: '#F6FFED' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
+    <div style={{ padding: '16px' }}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-8 rounded-b-3xl shadow-lg">
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-sm opacity-90">{todayDate}</div>
-          <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium">
-            {targetLabel[userSettings.target]}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Hi, {userSettings.nickname || '用户'}</p>
+            <h1 className="page-title">今日饮食记录</h1>
           </div>
         </div>
 
-        {/* Main Calorie Card */}
-        <div className="bg-white rounded-2xl p-6 text-gray-800 shadow-xl">
-          <div className="text-center mb-6">
-            <div className="text-5xl font-bold text-green-600 mb-2">
-              {remaining}
-            </div>
-            <div className="text-gray-500 text-sm">剩余可摄入（千卡）</div>
+        {/* Date Navigator */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          backgroundColor: '#fff', borderRadius: '8px', padding: '8px 12px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+        }}>
+          <button
+            onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 7); setSelectedDate(d); }}
+            style={{ border: 'none', background: '#F5F7FA', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: '#666' }}
+          >◀</button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {weekDates.map((date) => {
+              const dateStr = formatDate(date);
+              const isToday = dateStr === formatDate(new Date());
+              return (
+                <button
+                  key={dateStr}
+                  onClick={() => setSelectedDate(date)}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    width: '36px', height: '48px', borderRadius: '6px', border: 'none',
+                    background: isToday ? '#1677FF' : 'transparent',
+                    color: isToday ? '#fff' : '#666',
+                    cursor: 'pointer', fontSize: '12px',
+                  }}
+                >
+                  <span style={{ fontSize: '10px', opacity: 0.8 }}>周{WEEKDAYS[date.getDay()]}</span>
+                  <span style={{ fontWeight: isToday ? 700 : 400, fontSize: '13px' }}>{date.getDate()}</span>
+                </button>
+              );
+            })}
           </div>
-
-          <div className="flex justify-around text-sm text-gray-600 mb-6 pb-4 border-b border-gray-100">
-            <div className="text-center">
-              <div className="text-lg font-semibold text-gray-800">{targetCal}</div>
-              <div className="text-xs mt-1">今日推荐</div>
-            </div>
-            <div className="w-px bg-gray-200"></div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-orange-600">{todayIntake}</div>
-              <div className="text-xs mt-1">已摄入</div>
-            </div>
-            <div className="w-px bg-gray-200"></div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-blue-600">-{todayExercise}</div>
-              <div className="text-xs mt-1">运动消耗</div>
-            </div>
-          </div>
-
-          {todayExercise > 0 && (
-            <div className="bg-blue-50 rounded-xl p-3 mb-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">净摄入 = 已摄入 - 运动消耗</span>
-                <span className="font-semibold text-blue-600">{netCalories} 千卡</span>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white py-4 rounded-xl font-medium flex flex-col items-center gap-2 hover:shadow-lg transition-all active:scale-95"
-            >
-              <span className="text-3xl">🍽️</span>
-              <span>手动添加食物</span>
-            </button>
-            <button className="bg-gradient-to-r from-orange-400 to-red-400 text-white py-4 rounded-xl font-medium flex flex-col items-center gap-2 hover:shadow-lg transition-all active:scale-95">
-              <span className="text-3xl">📷</span>
-              <span>拍照识别食物</span>
-            </button>
-          </div>
+          <button
+            onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 7); setSelectedDate(d); }}
+            style={{ border: 'none', background: '#F5F7FA', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: '#666' }}
+          >▶</button>
         </div>
       </div>
 
-      {/* Food Records List */}
-      <div className="px-6 py-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">今日饮食记录</h2>
-          <span className="text-sm text-gray-500">{todayRecords.length} 条</span>
-        </div>
-
-        {todayRecords.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center">
-            <div className="text-5xl mb-4">🍽️</div>
-            <div className="text-gray-500 text-sm">暂无记录</div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {todayRecords.map((record) => (
-              <div
-                key={record.id}
-                className="bg-white rounded-xl p-4 flex justify-between items-center shadow-sm hover:shadow-md transition-shadow group"
-              >
-                <div>
-                  <div className="font-medium text-gray-800">{record.name}</div>
-                  <div className="text-xs text-gray-500 mt-1">{record.time}</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold text-orange-600">{record.calorie} 千卡</span>
-                  <button
-                    onClick={() => removeFoodRecord(record.id)}
-                    className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-sm"
-                  >
-                    删除
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Smart Suggestion */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-100 border-t border-gray-200 px-6 py-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">💡</div>
-            <div className="flex-1">
-              <div className="text-xs text-gray-500 mb-1">智能管控建议</div>
-              <div className="text-sm text-gray-700 leading-relaxed">{suggestion}</div>
+      {/* Calorie Ring Card */}
+      <Card style={{ marginBottom: '24px', borderRadius: '8px' }} styles={{ body: { padding: '16px' } }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <div style={{ flex: 1 }}>
+            <p className="caption-text" style={{ marginBottom: '4px' }}>今日摄入</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '28px', fontWeight: 700, color: '#333' }}>{totalCal}</span>
+              <span style={{ fontSize: '14px', color: '#666' }}>/ {targetCal} 千卡</span>
             </div>
-          </div>
-        </div>
-      </div>
+            <p style={{ fontSize: '12px', color: remaining >= 0 ? '#52C41A' : '#FF4D4F', fontWeight: 500, marginBottom: '16px' }}>
+              {remaining >= 0 ? `剩余 ${remaining} 千卡` : `超标 ${Math.abs(remaining)} 千卡`}
+            </p>
 
-      {/* Add Food Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50" onClick={() => setShowAddModal(false)}>
-          <div
-            className="bg-white rounded-t-3xl w-full max-w-lg max-h-[80vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6 border-b border-gray-100">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">添加食物</h3>
-                <button onClick={() => setShowAddModal(false)} className="text-gray-400 text-2xl">&times;</button>
-              </div>
-              <input
-                type="text"
-                placeholder="搜索食物..."
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-
-            <div className="overflow-y-auto max-h-[50vh] p-6">
-              {selectedFood ? (
-                <div>
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 mb-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <div>
-                        <div className="font-semibold text-gray-800">{selectedFood.name}</div>
-                        <div className="text-sm text-gray-500">{selectedFood.calorie}千卡/100g</div>
-                      </div>
-                      <button
-                        onClick={() => setSelectedFood(null)}
-                        className="text-sm text-green-600"
-                      >
-                        重新选择
-                      </button>
+            {/* Macro Progress */}
+            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+              {macroConfig.map((macro) => {
+                const value = macros[macro.key] || 0;
+                const pct = Math.min((value / macro.target) * 100, 100);
+                return (
+                  <div key={macro.key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', color: '#666' }}>{macro.label}</span>
+                      <span style={{ fontSize: '12px', color: '#333', fontWeight: 600 }}>{value}g / {macro.target}g</span>
                     </div>
-                    <div>
-                      <label className="text-sm text-gray-600 mb-2 block">输入重量（克）</label>
-                      <input
-                        type="number"
-                        value={portion}
-                        onChange={(e) => setPortion(Number(e.target.value))}
-                        className="w-full px-4 py-3 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="输入克数"
+                    <div style={{ height: '6px', backgroundColor: macro.bgColor, borderRadius: '3px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%', backgroundColor: macro.color, borderRadius: '3px',
+                          width: animateProgress ? `${pct}%` : '0%',
+                          transition: 'width 1s ease-out',
+                        }}
                       />
                     </div>
-                    <div className="mt-4 p-3 bg-white rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">计算热量</span>
-                        <span className="text-xl font-bold text-orange-600">
-                          {Math.round((selectedFood.calorie / 100) * portion)} 千卡
-                        </span>
-                      </div>
-                    </div>
                   </div>
-                  <button
-                    onClick={handleAddFood}
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-4 rounded-xl font-medium hover:shadow-lg transition-all"
-                  >
-                    确认添加
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {filteredFoods.map((food) => (
-                    <button
-                      key={food.id}
-                      onClick={() => setSelectedFood(food)}
-                      className="bg-gray-50 hover:bg-green-50 rounded-xl p-4 text-left transition-colors"
-                    >
-                      <div className="font-medium text-gray-800 text-sm mb-1">{food.name}</div>
-                      <div className="text-xs text-gray-500">{food.calorie}千卡/100g</div>
-                    </button>
-                  ))}
-                </div>
-              )}
+                );
+              })}
+            </Space>
+          </div>
+
+          {/* Circular Progress */}
+          <div style={{ width: '100px', height: '100px', flexShrink: 0, marginLeft: '16px' }}>
+            <Progress
+              type="circle"
+              percent={animateProgress ? Math.round(progress) : 0}
+              size={100}
+              strokeColor="#1677FF"
+              format={(p) => <span style={{ fontSize: '18px', fontWeight: 700, color: '#333' }}>{p}%</span>}
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Meal Buttons */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '24px' }}>
+        {MEAL_TYPES.map((meal) => (
+          <Button
+            key={meal.key}
+            type="default"
+            onClick={() => {
+              if (meal.key === 'exercise') {
+                window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'exercise' } }));
+              } else {
+                setShowAddModal(true);
+              }
+            }}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              height: '72px', borderRadius: '8px', border: '1px solid #F0F0F0',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+            }}
+          >
+            <span style={{ fontSize: '20px', color: meal.color, marginBottom: '4px' }}>{meal.icon}</span>
+            <span style={{ fontSize: '12px', color: '#666' }}>{meal.label}</span>
+          </Button>
+        ))}
+      </div>
+
+      {/* Water Tracker */}
+      <Card style={{ marginBottom: '24px', borderRadius: '8px' }} styles={{ body: { padding: '16px' } }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '6px',
+              backgroundColor: '#E6F4FF', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: '20px',
+            }}>💧</div>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#333', margin: 0 }}>饮水记录</p>
+              <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>今日已喝 {todayWaterCount} 杯 / 8 杯</p>
             </div>
           </div>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAddWater} />
+        </div>
+      </Card>
+
+      {/* Smart Suggestion */}
+      {showSmartSuggestion && (
+        <div style={{ marginBottom: '24px' }}>
+          <SmartSuggestion
+            currentCal={totalCal}
+            targetCal={targetCal}
+            mealTime={todayRecords.length > 0
+              ? (todayRecords[todayRecords.length - 1].mealType === 'snack' ? 'dinner' : todayRecords[todayRecords.length - 1].mealType === 'dinner' ? 'dinner' : 'lunch')
+              : 'breakfast'}
+            onClose={() => setShowSmartSuggestion(false)}
+          />
         </div>
       )}
 
-      {/* Bottom padding for suggestion bar */}
-      <div className="h-32"></div>
+      {/* Achievement Stats */}
+      <Card style={{ marginBottom: '24px', borderRadius: '8px' }} styles={{ body: { padding: '16px' } }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <TrophyOutlined style={{ color: '#FAAD14', fontSize: '18px' }} />
+          <span className="section-title">成就统计</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+          <div style={{
+            backgroundColor: '#F6FFED', borderRadius: '8px', padding: '12px',
+            textAlign: 'center', border: '1px solid #B7EB8F',
+          }}>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: '#52C41A', margin: '0 0 4px 0' }}>
+              {stats.length > 0 ? stats[0].totalDays : 0}
+            </p>
+            <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>总打卡天数</p>
+          </div>
+          <div style={{
+            backgroundColor: '#E6F4FF', borderRadius: '8px', padding: '12px',
+            textAlign: 'center', border: '1px solid #91CAFF',
+          }}>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: '#1677FF', margin: '0 0 4px 0' }}>
+              {stats.find(s => s.type === 'water')?.successDays || 0}
+            </p>
+            <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>饮水达标</p>
+          </div>
+          <div style={{
+            backgroundColor: '#FFFBE6', borderRadius: '8px', padding: '12px',
+            textAlign: 'center', border: '1px solid #FFE58F',
+          }}>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: '#FAAD14', margin: '0 0 4px 0' }}>
+              {consecutiveDays}
+            </p>
+            <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>连续打卡</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Modals */}
+      <AddFoodModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
+
+      {showEvaluation && evaluationData && (
+        <EvaluationPage evaluation={evaluationData} onClose={() => setShowEvaluation(false)} />
+      )}
+
+      {showWaterSuccess && (
+        <WaterSuccessModal waterCount={lastWaterCount} onClose={() => setShowWaterSuccess(false)} />
+      )}
     </div>
   );
 }
-
-export default Home;

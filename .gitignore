@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Irrelevant folders
+vehicle-maintenance-app/
+vehicle-maintenance-react/
+vehicle-maintenance-web/
+.trae/
+BAIDU_FOOD_RECOGNITION_GUIDE.md

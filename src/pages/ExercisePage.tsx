@@ -1,189 +1,327 @@
 import { useState } from 'react';
 import { useCalorieStore } from '../store/calorieStore';
 import { calcSportCal } from '../utils/calorie';
-import { DAILY_ACTIVITIES, EXERCISES, DailyActivity, Exercise } from '../utils/activities';
+import { DAILY_ACTIVITIES, SPORT_ACTIVITIES } from '../utils/activities';
+import ExerciseSuccessModal from './ExerciseSuccessModal';
+import { Card, Space, Typography, Button, Modal, Slider, Statistic, Avatar, Input } from 'antd';
+import {
+  FireOutlined,
+  CloseOutlined,
+  CheckOutlined,
+  ClockCircleOutlined,
+  ThunderboltOutlined,
+  BulbOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+  ArrowLeftOutlined,
+} from '@ant-design/icons';
+import SportsIcons from '../components/SportsIcons';
 
-function ExercisePage() {
-  const { userSettings, todayExercises, addExerciseRecord, getTodayExerciseCalories } = useCalorieStore();
-  const [selectedItem, setSelectedItem] = useState<DailyActivity | Exercise | null>(null);
+const { Title, Text } = Typography;
+
+// Map activity name to icon key
+function getSportIconKey(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes('走路') || lower.includes('散步') || lower.includes('stroll')) return 'stroll';
+  if (lower.includes('舞蹈') || lower.includes('健身操')) return 'dance';
+  if (lower.includes('跑步') || lower.includes('跑')) return 'run';
+  if (lower.includes('爬楼梯') || lower.includes('登山') || lower.includes('登山') || lower.includes('爬山')) return 'climbing';
+  if (lower.includes('快走') || lower.includes('fast')) return 'fastWalk';
+  if (lower.includes('跳绳') || lower.includes('jump')) return 'jumpRope';
+  if (lower.includes('骑行') || lower.includes('自行车') || lower.includes('骑车')) return 'cycling';
+  if (lower.includes('瑜伽') || lower.includes('普拉提') || lower.includes('pilates')) return 'yoga';
+  if (lower.includes('羽毛球') || lower.includes('羽球')) return 'badminton';
+  if (lower.includes('呼啦圈') || lower.includes('hula')) return 'hulaHoop';
+  if (lower.includes('游泳') || lower.includes('swim')) return 'swimming';
+  if (lower.includes('篮球') || lower.includes('basketball')) return 'basketball';
+  if (lower.includes('足球') || lower.includes('football') || lower.includes('soccer')) return 'football';
+  if (lower.includes('网球') || lower.includes('tennis')) return 'tennis';
+  if (lower.includes('哑铃') || lower.includes('力量') || lower.includes('举重') || lower.includes('健身')) return 'dumbbell';
+  if (lower.includes('拉伸') || lower.includes('stretch')) return 'stretching';
+  if (lower.includes('拳击') || lower.includes('boxing')) return 'boxing';
+  if (lower.includes('椭圆机') || lower.includes('elliptical')) return 'elliptical';
+  if (lower.includes('划船') || lower.includes('rowing')) return 'rowing';
+  if (lower.includes('慢跑') || lower.includes('jog')) return 'jog';
+  // Default to walk
+  return 'walk';
+}
+
+interface ActivityModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  activity: typeof DAILY_ACTIVITIES[0] | typeof SPORT_ACTIVITIES[0];
+  onAdd: (duration: number) => void;
+}
+
+function ActivityModal({ isOpen, onClose, activity, onAdd }: ActivityModalProps) {
   const [duration, setDuration] = useState(30);
+  const iconKey = getSportIconKey(activity.name);
+  const iconSvg = SportsIcons[iconKey as keyof typeof SportsIcons] || SportsIcons.walk;
+
+  return (
+    <Modal
+      open={isOpen}
+      onCancel={onClose}
+      footer={null}
+      closeIcon={<CloseOutlined />}
+      styles={{ body: { padding: '16px' } }}
+    >
+      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+        <Title level={4} style={{ margin: 0 }}>{activity.name}</Title>
+
+        <Card style={{ borderRadius: '8px', background: '#F5F7FA', border: 'none', textAlign: 'center' }}>
+          <div style={{ padding: '16px 0' }}>
+            {iconSvg}
+          </div>
+          <Text style={{ color: '#666', fontSize: '14px', display: 'block' }}>
+            MET值: {activity.met}
+          </Text>
+          <Text style={{ color: '#999', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+            {'description' in activity && activity.description ? String(activity.description) : '坚持运动，健康每一天！'}
+          </Text>
+        </Card>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <Text>运动时长</Text>
+            <Text strong>{duration} 分钟</Text>
+          </div>
+          <Slider
+            min={5}
+            max={120}
+            step={5}
+            value={duration}
+            onChange={(val) => setDuration(val)}
+            marks={{ 5: '5', 60: '60', 120: '120' }}
+          />
+        </div>
+
+        <Card style={{ borderRadius: '8px', background: '#FFF7E6', border: 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text><FireOutlined style={{ marginRight: '4px' }} />预计消耗</Text>
+            <Statistic
+              value={Math.round(calcSportCal(activity.met, 60, duration))}
+              suffix="千卡"
+              valueStyle={{ color: '#FA8C16', fontSize: '20px' }}
+            />
+          </div>
+        </Card>
+
+        <Button type="primary" block size="large" icon={<CheckOutlined />} onClick={() => { onAdd(duration); onClose(); }}>
+          确认添加
+        </Button>
+      </Space>
+    </Modal>
+  );
+}
+
+export default function ExercisePage() {
   const [showModal, setShowModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastExercise, setLastExercise] = useState<any>(null);
+  const [selectedActivity, setSelectedActivity] = useState<typeof DAILY_ACTIVITIES[0] | typeof SPORT_ACTIVITIES[0] | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const { userSettings, todayExercises, addExerciseRecord, removeExerciseRecord, todayWaterCount, getTodayExerciseCalories } = useCalorieStore();
 
-  const totalBurned = getTodayExerciseCalories();
+  const totalCal = getTodayExerciseCalories();
 
-  const handleSelect = (item: DailyActivity | Exercise) => {
-    setSelectedItem(item);
-    setDuration(30);
+  // Filter activities by search
+  const filteredDaily = DAILY_ACTIVITIES.filter(a => a.name.includes(searchTerm));
+  const filteredSports = SPORT_ACTIVITIES.filter(a => a.name.includes(searchTerm));
+
+  const handleAddExercise = (duration: number) => {
+    if (!selectedActivity) return;
+    const calorie = calcSportCal(selectedActivity.met, userSettings.weight, duration);
+    const exerciseRecord = {
+      name: selectedActivity.name,
+      met: selectedActivity.met,
+      duration,
+      calorie: Math.round(calorie),
+      date: new Date().toISOString().split('T')[0],
+      id: Date.now().toString(),
+    };
+    addExerciseRecord(exerciseRecord);
+    setLastExercise(exerciseRecord);
+    setShowSuccessModal(true);
+    setSelectedActivity(null);
+  };
+
+  const handleActivityClick = (activity: typeof DAILY_ACTIVITIES[0] | typeof SPORT_ACTIVITIES[0]) => {
+    setSelectedActivity(activity);
     setShowModal(true);
   };
 
-  const handleConfirm = () => {
-    if (selectedItem) {
-      const calorie = calcSportCal(selectedItem.met, userSettings.weight, duration);
-      addExerciseRecord({
-        name: selectedItem.name,
-        met: selectedItem.met,
-        duration,
-        calorie,
-      });
-      setShowModal(false);
-      setSelectedItem(null);
-    }
-  };
+  // Render activity card with SVG icon
+  const renderActivityCard = (activity: typeof DAILY_ACTIVITIES[0] | typeof SPORT_ACTIVITIES[0], bgColor: string, iconColor: string) => {
+    const iconKey = getSportIconKey(activity.name);
+    const iconSvg = SportsIcons[iconKey as keyof typeof SportsIcons] || SportsIcons.walk;
 
-  const calculatePreview = () => {
-    if (!selectedItem) return 0;
-    return calcSportCal(selectedItem.met, userSettings.weight, duration);
+    return (
+      <Card
+        key={activity.name}
+        hoverable
+        styles={{ body: { padding: '12px' } }}
+        onClick={() => handleActivityClick(activity)}
+        style={{ borderRadius: '12px', background: '#FFF', border: '1px solid #F0F0F0' }}
+      >
+        <Space style={{ width: '100%' }}>
+          <Avatar
+            shape="square"
+            size={48}
+            style={{
+              background: bgColor,
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {iconSvg}
+          </Avatar>
+          <div style={{ flex: 1 }}>
+            <Text strong style={{ fontSize: '14px', display: 'block' }}>{activity.name}</Text>
+            <Text style={{ color: '#999', fontSize: '12px' }}>
+              {Math.round(calcSportCal(activity.met, 60, 60))}千卡/60分钟
+            </Text>
+          </div>
+        </Space>
+      </Card>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 pb-20">
+    <div style={{ minHeight: '100vh', background: '#F5F7FA' }}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-8 rounded-b-3xl shadow-lg">
-        <h1 className="text-2xl font-bold mb-4">运动 / 生活消耗记录</h1>
-        <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="text-sm opacity-90 mb-1">今日已消耗</div>
-              <div className="text-3xl font-bold">{totalBurned}</div>
-              <div className="text-xs opacity-75 mt-1">千卡</div>
-            </div>
-            <div className="text-6xl">🔥</div>
+      <div style={{
+        background: 'linear-gradient(135deg, #D46B08 0%, #FA8C16 100%)',
+        padding: '48px 20px 24px',
+        borderBottomLeftRadius: '16px',
+        borderBottomRightRadius: '16px',
+      }}>
+        <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <Title level={4} style={{ margin: 0, color: '#FFF' }}>运动项目</Title>
+          <Button type="text" icon={<SearchOutlined />} style={{ color: '#FFF', fontSize: '18px' }} />
+        </Space>
+
+        <Input
+          placeholder="搜索运动项目"
+          prefix={<SearchOutlined style={{ color: '#FFB74D' }} />}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            borderRadius: '24px',
+            height: '44px',
+            fontSize: '14px',
+            background: 'rgba(255,255,255,0.9)',
+            border: 'none',
+          }}
+        />
+      </div>
+
+      {/* Content */}
+      <Space orientation="vertical" size={16} style={{ width: '100%', padding: '16px' }}>
+        {/* Daily Activities */}
+        {filteredDaily.length > 0 && (
+          <div>
+            <Title level={5} style={{ marginBottom: '12px' }}>
+              <BulbOutlined style={{ marginRight: '8px', color: '#FA8C16' }} />日常活动
+            </Title>
+            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+              {filteredDaily.map((activity) => renderActivityCard(activity, '#FFF7E6', '#FA8C16'))}
+            </Space>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Daily Activities Section */}
-      <div className="px-6 py-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">日常生活消耗</h2>
-        <div className="grid grid-cols-4 gap-3">
-          {DAILY_ACTIVITIES.map((activity) => (
-            <button
-              key={activity.id}
-              onClick={() => handleSelect(activity)}
-              className="bg-white rounded-xl p-4 flex flex-col items-center gap-2 shadow-sm hover:shadow-lg transition-all active:scale-95"
-            >
-              <div className="text-3xl">{activity.icon}</div>
-              <div className="text-xs text-gray-700 text-center font-medium">{activity.name}</div>
-              <div className="text-xs text-gray-400">MET {activity.met}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Exercises Section */}
-      <div className="px-6 py-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">运动消耗</h2>
-        <div className="grid grid-cols-4 gap-3">
-          {EXERCISES.map((exercise) => (
-            <button
-              key={exercise.id}
-              onClick={() => handleSelect(exercise)}
-              className="bg-white rounded-xl p-4 flex flex-col items-center gap-2 shadow-sm hover:shadow-lg transition-all active:scale-95"
-            >
-              <div className="text-3xl">{exercise.icon}</div>
-              <div className="text-xs text-gray-700 text-center font-medium">{exercise.name}</div>
-              <div className="text-xs text-gray-400">MET {exercise.met}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Info Banner */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-100 border-t border-gray-200 px-6 py-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">📊</div>
-            <div className="flex-1">
-              <div className="text-xs text-gray-500 mb-1">热量消耗计算</div>
-              <div className="text-sm text-gray-700 leading-relaxed">
-                记录日常 / 运动消耗，帮你更精准管控饮食热量
-              </div>
-            </div>
+        {/* Sport Activities */}
+        {filteredSports.length > 0 && (
+          <div>
+            <Title level={5} style={{ marginBottom: '12px' }}>
+              <ThunderboltOutlined style={{ marginRight: '8px', color: '#1677FF' }} />体育运动
+            </Title>
+            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+              {filteredSports.map((activity) => renderActivityCard(activity, '#F0F5FF', '#1677FF'))}
+            </Space>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Duration Selection Modal */}
-      {showModal && selectedItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50" onClick={() => setShowModal(false)}>
-          <div
-            className="bg-white rounded-t-3xl w-full max-w-lg overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6 border-b border-gray-100">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="text-5xl">{selectedItem.icon}</div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-800">{selectedItem.name}</h3>
-                  <div className="text-sm text-gray-500">MET {selectedItem.met}</div>
-                </div>
-              </div>
+        {/* Today's Exercises */}
+        {todayExercises.length > 0 && (
+          <Card title="今日运动记录" styles={{ body: { padding: '16px' } }} style={{ borderRadius: '8px' }}>
+            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+              {todayExercises.map((ex) => {
+                const iconKey = getSportIconKey(ex.name);
+                const iconSvg = SportsIcons[iconKey as keyof typeof SportsIcons] || SportsIcons.walk;
 
-              <div className="mb-6">
-                <label className="text-sm text-gray-600 mb-3 block">选择时长</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[10, 20, 30, 45, 60, 90].map((mins) => (
-                    <button
-                      key={mins}
-                      onClick={() => setDuration(mins)}
-                      className={`py-3 rounded-xl font-medium transition-all ${
-                        duration === mins
-                          ? 'bg-blue-500 text-white shadow-lg'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {mins}分钟
-                    </button>
-                  ))}
-                </div>
-              </div>
+                return (
+                  <Card
+                    key={ex.id}
+                    styles={{ body: { padding: '12px 16px' } }}
+                    style={{ borderRadius: '8px' }}
+                  >
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                      <Space>
+                        <Avatar
+                          shape="square"
+                          size={40}
+                          style={{
+                            background: '#FFF7E6',
+                            borderRadius: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {iconSvg}
+                        </Avatar>
+                        <div>
+                          <Text strong style={{ fontSize: '14px', display: 'block' }}>{ex.name}</Text>
+                          <Text style={{ color: '#999', fontSize: '12px' }}>
+                            <ClockCircleOutlined style={{ marginRight: '4px' }} />{ex.duration} 分钟
+                          </Text>
+                        </div>
+                      </Space>
+                      <Space>
+                        <Text type="warning" strong>{ex.calorie} 千卡</Text>
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={() => removeExerciseRecord(ex.id)}
+                        />
+                      </Space>
+                    </Space>
+                  </Card>
+                );
+              })}
+            </Space>
+          </Card>
+        )}
+      </Space>
 
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4">
-                <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-600">预计消耗</div>
-                  <div className="text-2xl font-bold text-blue-600">{calculatePreview()} 千卡</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 flex gap-3">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleConfirm}
-                className="flex-1 py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-all"
-              >
-                确认记录
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Activity Modal */}
+      {showModal && selectedActivity && (
+        <ActivityModal
+          isOpen={showModal}
+          onClose={() => {
+            setShowModal(false);
+            setSelectedActivity(null);
+          }}
+          activity={selectedActivity}
+          onAdd={handleAddExercise}
+        />
       )}
 
-      {/* Exercise Records */}
-      {todayExercises.length > 0 && (
-        <div className="px-6 py-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">今日运动记录</h2>
-          <div className="space-y-3">
-            {todayExercises.map((ex) => (
-              <div key={ex.id} className="bg-white rounded-xl p-4 flex justify-between items-center shadow-sm">
-                <div>
-                  <div className="font-medium text-gray-800">{ex.name}</div>
-                  <div className="text-xs text-gray-500 mt-1">{ex.duration}分钟</div>
-                </div>
-                <span className="font-semibold text-blue-600">{ex.calorie} 千卡</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Exercise Success Modal */}
+      {showSuccessModal && lastExercise && (
+        <ExerciseSuccessModal
+          exercise={lastExercise}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setLastExercise(null);
+          }}
+        />
       )}
     </div>
   );
 }
-
-export default ExercisePage;

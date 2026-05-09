@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { MemberLevel } from '../utils/memberPlans';
+import { calculateStreak, calculateAchievementStats, AchievementStats } from '../utils/checkInSystem';
+
+export interface MacroNutrients {
+  protein: number;
+  fat: number;
+  carbs: number;
+}
 
 export interface FoodRecord {
   id: string;
@@ -8,6 +15,9 @@ export interface FoodRecord {
   calorie: number;
   time: string;
   date: string;
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  macro?: MacroNutrients;
+  timestamp: number;
 }
 
 export interface UserSettings {
@@ -16,8 +26,13 @@ export interface UserSettings {
   age: number;
   height: number;
   weight: number;
+  targetWeight?: number;
   target: 'fat' | 'keep' | 'muscle';
   activityLevel: number;
+  startDate?: string;
+  dailyBudget?: number;
+  targetSetDate?: string;
+  targetAchievementDate?: string;
 }
 
 export interface ExerciseRecord {
@@ -29,158 +44,212 @@ export interface ExerciseRecord {
   date: string;
 }
 
-interface AdStats {
-  lastAdDate: string;
-  dailyAdCount: number;
+export interface CheckInRecord {
+  id: string;
+  date: string;
+  completed: boolean;
+  calorie: number;
+  target: number;
+  exerciseCal?: number;
+  waterCount?: number;
+  waterTarget?: number;
+  exerciseTarget?: number;
 }
 
-interface CalorieStore {
+export interface WeightRecord {
+  id: string;
+  date: string;
+  time: string;
+  weight: number;
+}
+
+export interface CalorieState {
   userSettings: UserSettings;
-  memberLevel: MemberLevel;
   todayRecords: FoodRecord[];
   todayExercises: ExerciseRecord[];
-  adStats: AdStats;
-  
-  updateUserSettings: (settings: Partial<UserSettings>) => void;
-  upgradeMember: (level: MemberLevel) => void;
-  addFoodRecord: (record: Omit<FoodRecord, 'id' | 'date'>) => void;
-  removeFoodRecord: (id: string) => void;
-  addExerciseRecord: (record: Omit<ExerciseRecord, 'id' | 'date'>) => void;
-  resetTodayRecords: () => void;
-  getTodayTotalCalories: () => number;
-  getTodayExerciseCalories: () => number;
-  getNetCalories: () => number;
-  canShowAd: () => boolean;
-  recordAdView: () => void;
+  checkIns: CheckInRecord[];
+  weightRecords: WeightRecord[];
+  todayWaterCount: number;
 }
 
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+export interface CalorieStore extends CalorieState {
+  updateUserSettings: (settings: Partial<UserSettings>) => void;
+  addFoodRecord: (record: FoodRecord) => void;
+  removeFoodRecord: (id: string) => void;
+  addExerciseRecord: (record: ExerciseRecord) => void;
+  removeExerciseRecord: (id: string) => void;
+  addCheckIn: (record: CheckInRecord) => void;
+  updateCheckIn: (id: string, updates: Partial<CheckInRecord>) => void;
+  removeCheckIn: (id: string) => void;
+  addWeightRecord: (weight: number) => void;
+  removeWeightRecord: (id: string) => void;
+  resetTodayRecords: () => void;
+  incrementWater: () => void;
+  resetWater: () => void;
+  getTodayTotalCalories: () => number;
+  getTodayExerciseCalories: () => number;
+  getTodayMacros: () => MacroNutrients;
+  getAchievementStats: () => AchievementStats[];
+  getMealTypeLabel: (type: string) => string;
+  isMealRecorded: (type: string) => boolean;
+  getInitialWeight: () => number | undefined;
+}
 
-const formatDate = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+const DEFAULT_SETTINGS: UserSettings = {
+  nickname: '用户',
+  gender: 'female',
+  age: 25,
+  height: 160,
+  weight: 55,
+  target: 'fat',
+  activityLevel: 1.2,
 };
-
-const getTodayDate = () => formatDate(new Date());
 
 export const useCalorieStore = create<CalorieStore>()(
   persist(
     (set, get) => ({
-      userSettings: {
-        nickname: '用户',
-        gender: 'female',
-        age: 25,
-        height: 165,
-        weight: 55,
-        target: 'keep',
-        activityLevel: 1.2,
-      },
-      memberLevel: 'free',
+      userSettings: DEFAULT_SETTINGS,
       todayRecords: [],
       todayExercises: [],
-      adStats: {
-        lastAdDate: '',
-        dailyAdCount: 0,
-      },
+      checkIns: [],
+      weightRecords: [],
+      todayWaterCount: 0,
 
-      updateUserSettings: (settings) => {
+      updateUserSettings: (settings: Partial<UserSettings>) => {
         set((state) => ({
           userSettings: { ...state.userSettings, ...settings },
         }));
       },
 
-      upgradeMember: (level) => {
-        set({ memberLevel: level });
-      },
-
-      addFoodRecord: (record) => {
-        const newRecord: FoodRecord = {
-          ...record,
-          id: generateId(),
-          date: getTodayDate(),
-        };
+      addFoodRecord: (record: FoodRecord) => {
         set((state) => ({
-          todayRecords: [...state.todayRecords, newRecord],
+          todayRecords: [...state.todayRecords, record],
         }));
       },
 
-      removeFoodRecord: (id) => {
+      removeFoodRecord: (id: string) => {
         set((state) => ({
           todayRecords: state.todayRecords.filter((r) => r.id !== id),
         }));
       },
 
-      addExerciseRecord: (record) => {
-        const newRecord: ExerciseRecord = {
-          ...record,
-          id: generateId(),
-          date: getTodayDate(),
+      addExerciseRecord: (record: ExerciseRecord) => {
+        set((state) => ({
+          todayExercises: [...state.todayExercises, record],
+        }));
+      },
+
+      removeExerciseRecord: (id: string) => {
+        set((state) => ({
+          todayExercises: state.todayExercises.filter((r) => r.id !== id),
+        }));
+      },
+
+      addCheckIn: (record: CheckInRecord) => {
+        set((state) => ({
+          checkIns: [record, ...state.checkIns],
+        }));
+      },
+
+      updateCheckIn: (id: string, updates: Partial<CheckInRecord>) => {
+        set((state) => ({
+          checkIns: state.checkIns.map((c) =>
+            c.id === id ? { ...c, ...updates } : c
+          ),
+        }));
+      },
+
+      removeCheckIn: (id: string) => {
+        set((state) => ({
+          checkIns: state.checkIns.filter((c) => c.id !== id),
+        }));
+      },
+
+      addWeightRecord: (weight: number) => {
+        const now = new Date();
+        const record: WeightRecord = {
+          id: Date.now().toString(),
+          date: now.toISOString().split('T')[0],
+          time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+          weight,
         };
         set((state) => ({
-          todayExercises: [...state.todayExercises, newRecord],
+          weightRecords: [record, ...state.weightRecords],
+          userSettings: { ...state.userSettings, weight },
+        }));
+      },
+
+      removeWeightRecord: (id: string) => {
+        set((state) => ({
+          weightRecords: state.weightRecords.filter((r) => r.id !== id),
         }));
       },
 
       resetTodayRecords: () => {
-        set({
-          todayRecords: [],
-          todayExercises: [],
-        });
+        set({ todayRecords: [], todayExercises: [] });
+      },
+
+      incrementWater: () => {
+        set((state) => ({ todayWaterCount: state.todayWaterCount + 1 }));
+      },
+
+      resetWater: () => {
+        set({ todayWaterCount: 0 });
       },
 
       getTodayTotalCalories: () => {
-        const records = get().todayRecords;
-        return records.reduce((sum, record) => sum + record.calorie, 0);
+        return get().todayRecords.reduce((sum, r) => sum + r.calorie, 0);
       },
 
       getTodayExerciseCalories: () => {
-        const exercises = get().todayExercises;
-        return exercises.reduce((sum, ex) => sum + ex.calorie, 0);
+        return get().todayExercises.reduce((sum, r) => sum + r.calorie, 0);
       },
 
-      getNetCalories: () => {
-        return get().getTodayTotalCalories() - get().getTodayExerciseCalories();
-      },
-
-      canShowAd: () => {
-        const { memberLevel, adStats } = get();
-        const today = getTodayDate();
-
-        if (memberLevel !== 'free') {
-          return false;
-        }
-
-        if (adStats.lastAdDate !== today) {
-          return true;
-        }
-
-        return adStats.dailyAdCount < 3;
-      },
-
-      recordAdView: () => {
-        const today = getTodayDate();
-        set((state) => {
-          if (state.adStats.lastAdDate !== today) {
-            return {
-              adStats: {
-                lastAdDate: today,
-                dailyAdCount: 1,
-              },
-            };
+      getTodayMacros: () => {
+        const macros = { protein: 0, fat: 0, carbs: 0 };
+        get().todayRecords.forEach((r) => {
+          if (r.macro) {
+            macros.protein += r.macro.protein;
+            macros.fat += r.macro.fat;
+            macros.carbs += r.macro.carbs;
           }
-          return {
-            adStats: {
-              ...state.adStats,
-              dailyAdCount: state.adStats.dailyAdCount + 1,
-            },
-          };
         });
+        return macros;
+      },
+
+      getAchievementStats: () => {
+        const { checkIns } = get();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - 7);
+        return calculateAchievementStats(checkIns, startDate);
+      },
+
+      getMealTypeLabel: (type: string) => {
+        const labels: Record<string, string> = {
+          breakfast: '早餐',
+          lunch: '午餐',
+          dinner: '晚餐',
+          snack: '加餐',
+        };
+        return labels[type] || type;
+      },
+
+      isMealRecorded: (type: string) => {
+        return get().todayRecords.some((r) => r.mealType === type);
+      },
+
+      getInitialWeight: () => {
+        const { weightRecords, userSettings } = get();
+        if (weightRecords.length > 0) {
+          return weightRecords[weightRecords.length - 1].weight;
+        }
+        return userSettings.weight;
       },
     }),
     {
-      name: 'calorie-storage',
+      name: 'calorie-store',
     }
   )
 );

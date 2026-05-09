@@ -1,324 +1,516 @@
 import { useState } from 'react';
+import dayjs from 'dayjs';
 import { useCalorieStore } from '../store/calorieStore';
 import { getBMR, getTDEE, getTargetCal } from '../utils/calorie';
+import { calculateStreak } from '../utils/checkInSystem';
+import WeightChart from '../components/WeightChart';
+import FoodDatabasePage from './FoodDatabasePage';
+import WeightTrendPage from './WeightTrendPage';
+import { Card, Space, Tag, Button, Modal, Typography, Input, Progress, List, Avatar, Statistic, DatePicker } from 'antd';
+import {
+  UserOutlined,
+  SettingOutlined,
+  ReloadOutlined,
+  AimOutlined,
+  CloseOutlined,
+  CheckOutlined,
+  BookOutlined,
+  HeartOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  MinusOutlined,
+  LineChartOutlined,
+  CalendarOutlined,
+  BarChartOutlined,
+} from '@ant-design/icons';
 
-function ProfilePage() {
-  const { userSettings, updateUserSettings, resetTodayRecords, getTodayTotalCalories } = useCalorieStore();
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [tempValue, setTempValue] = useState('');
+const { Title, Text } = Typography;
+
+export default function ProfilePage() {
+  const [showSettings, setShowSettings] = useState(false);
+  const [showFoodDatabase, setShowFoodDatabase] = useState(false);
+  const [showWeightTrend, setShowWeightTrend] = useState(false);
+  const [newWeight, setNewWeight] = useState('');
+  const {
+    userSettings,
+    updateUserSettings,
+    resetTodayRecords,
+    checkIns,
+    weightRecords,
+    addWeightRecord,
+    getAchievementStats,
+    resetWater,
+  } = useCalorieStore();
 
   const bmr = getBMR(userSettings.gender, userSettings.weight, userSettings.height, userSettings.age);
   const tdee = getTDEE(bmr, userSettings.activityLevel);
   const targetCal = getTargetCal(tdee, userSettings.target);
 
-  const activityLevels = [
-    { value: 1.2, label: '久坐（几乎不运动）' },
-    { value: 1.375, label: '轻度活动（每周运动1-3次）' },
-    { value: 1.55, label: '中度活动（每周运动3-5次）' },
-    { value: 1.725, label: '高强度（天天运动）' },
-  ];
+  const streak = calculateStreak(checkIns);
 
-  const targets = [
-    { value: 'fat', label: '减脂', desc: '每日缺口400千卡' },
-    { value: 'keep', label: '维持', desc: '保持当前体重' },
-    { value: 'muscle', label: '增肌', desc: '每日盈余300千卡' },
-  ];
-
-  const handleEdit = (field: string, currentValue: any) => {
-    setEditingField(field);
-    setTempValue(String(currentValue));
-    setShowEditModal(true);
+  // Calculate target plan days
+  const getTargetPlanDays = () => {
+    if (!userSettings.targetSetDate || !userSettings.targetAchievementDate) return 0;
+    const start = new Date(userSettings.targetSetDate);
+    const end = new Date(userSettings.targetAchievementDate);
+    const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(diff, 1);
   };
 
-  const handleSave = () => {
-    if (editingField) {
-      let value: any = tempValue;
+  const targetPlanDays = getTargetPlanDays();
 
-      if (['age', 'height', 'weight'].includes(editingField)) {
-        value = Number(tempValue);
-      }
+  // Calculate achievement rates based on target plan days
+  const getCalorieSuccessDays = () => {
+    return checkIns.filter(c => c.calorie <= c.target).length;
+  };
 
-      updateUserSettings({ [editingField]: value });
-      setShowEditModal(false);
-      setEditingField(null);
+  const getExerciseSuccessDays = () => {
+    return checkIns.filter(c => c.exerciseCal && c.exerciseCal > 0).length;
+  };
+
+  const getWaterSuccessDays = () => {
+    return checkIns.filter(c => c.waterCount && c.waterCount >= 8).length;
+  };
+
+  const calorieSuccessDays = getCalorieSuccessDays();
+  const exerciseSuccessDays = getExerciseSuccessDays();
+  const waterSuccessDays = getWaterSuccessDays();
+
+  const calorieRate = targetPlanDays > 0 ? Math.round((calorieSuccessDays / targetPlanDays) * 100) : 0;
+  const exerciseRate = targetPlanDays > 0 ? Math.round((exerciseSuccessDays / targetPlanDays) * 100) : 0;
+  const waterRate = targetPlanDays > 0 ? Math.round((waterSuccessDays / targetPlanDays) * 100) : 0;
+
+  const handleWeightSubmit = () => {
+    if (newWeight) {
+      addWeightRecord(Number(newWeight));
+      setNewWeight('');
     }
   };
 
   const handleReset = () => {
     if (confirm('确定要重置今日所有记录吗？')) {
       resetTodayRecords();
-      alert('已重置');
     }
   };
 
-  const getActivityLabel = (level: number) => {
-    const found = activityLevels.find(a => a.value === level);
-    return found ? found.label : '未知';
+  const getTargetLabel = () => {
+    const labels: Record<string, string> = { fat: '减脂', keep: '维持', muscle: '增肌' };
+    return labels[userSettings.target];
   };
 
-  const getTargetInfo = (target: string) => {
-    const found = targets.find(t => t.value === target);
-    return found || { label: '未知', desc: '' };
+  const getTargetColor = () => {
+    const colors: Record<string, string> = { fat: 'orange', keep: 'green', muscle: 'blue' };
+    return colors[userSettings.target];
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+    <div style={{ minHeight: '100vh', background: '#F5F7FA' }}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-8 rounded-b-3xl shadow-lg">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-4xl">
-            👤
-          </div>
-          <div>
-            <div className="text-2xl font-bold mb-1">{userSettings.nickname}</div>
-            <div className="text-sm opacity-90">开始管理你的热量</div>
-          </div>
+      <div style={{
+        background: 'linear-gradient(135deg, #0958D9 0%, #1677FF 100%)',
+        paddingTop: '48px',
+        paddingBottom: '24px',
+      }}>
+        <div style={{ padding: '0 20px' }}>
+          <Space>
+            <Avatar size={64} style={{ background: 'rgba(255,255,255,0.3)', color: '#FFF', fontSize: '32px' }}>
+              <UserOutlined />
+            </Avatar>
+            <div>
+              <Title level={4} style={{ margin: 0, color: '#FFF' }}>{userSettings.nickname}</Title>
+              <Text style={{ color: '#FFF', fontSize: '12px' }}>已加入 {streak} 天</Text>
+              <Tag color={getTargetColor()} style={{ marginTop: '4px' }}>{getTargetLabel()}</Tag>
+            </div>
+          </Space>
         </div>
       </div>
 
-      {/* User Info Card */}
-      <div className="px-6 py-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">资料展示</h2>
-          </div>
+      {/* Content */}
+      <Space orientation="vertical" size={16} style={{ width: '100%', padding: '16px' }}>
+        {/* Quick Action: Fill Profile */}
+        <Button
+          type="primary"
+          block
+          size="large"
+          icon={<UserOutlined />}
+          onClick={() => setShowSettings(true)}
+          style={{
+            background: 'linear-gradient(90deg, #1677FF, #4096FF)',
+            borderRadius: '24px',
+            height: '52px',
+            fontSize: '16px',
+            fontWeight: 600,
+          }}
+        >
+          填写个人资料
+        </Button>
 
-          <div className="space-y-4">
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <div className="text-sm text-gray-600">性别</div>
-              <button
-                onClick={() => handleEdit('gender', userSettings.gender)}
-                className="text-sm font-medium text-purple-600"
-              >
-                {userSettings.gender === 'male' ? '男' : '女'}
-              </button>
-            </div>
+        {/* Health Data */}
+        <Card title="健康数据" styles={{ body: { padding: '16px' } }} style={{ borderRadius: '8px' }}>
+          <Space style={{ width: '100%', justifyContent: 'space-around' }}>
+            <Card style={{ flex: 1, borderRadius: '8px', background: '#F0F5FF', textAlign: 'center', border: 'none' }}>
+              <Statistic title="基础代谢" value={bmr} suffix="千卡/天" valueStyle={{ fontSize: '18px', color: '#1677FF' }} />
+            </Card>
+            <Card style={{ flex: 1, borderRadius: '8px', background: '#F6FFED', textAlign: 'center', border: 'none' }}>
+              <Statistic title="每日总消耗" value={tdee} suffix="千卡/天" valueStyle={{ fontSize: '18px', color: '#52C41A' }} />
+            </Card>
+            <Card style={{ flex: 1, borderRadius: '8px', background: '#FFF7E6', textAlign: 'center', border: 'none' }}>
+              <Statistic title="目标摄入" value={targetCal} suffix="千卡/天" valueStyle={{ fontSize: '18px', color: '#FA8C16' }} />
+            </Card>
+          </Space>
+        </Card>
 
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <div className="text-sm text-gray-600">年龄</div>
-              <button
-                onClick={() => handleEdit('age', userSettings.age)}
-                className="text-sm font-medium text-purple-600"
-              >
-                {userSettings.age} 岁
-              </button>
-            </div>
+        {/* Achievement Stats */}
+        <Card
+          title="成就"
+          styles={{ body: { padding: '16px' } }}
+          style={{ borderRadius: '8px' }}
+        >
+          <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+            {/* Target Plan Info */}
+            {userSettings.targetSetDate && userSettings.targetAchievementDate && (
+              <Card style={{ borderRadius: '8px', background: '#FAFAFA', border: 'none' }}>
+                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                  <Space>
+                    <CalendarOutlined style={{ color: '#1677FF', fontSize: '18px' }} />
+                    <div>
+                      <Text style={{ fontSize: '12px', color: '#999' }}>目标计划天数</Text>
+                      <Text strong style={{ display: 'block' }}>{targetPlanDays} 天</Text>
+                    </div>
+                  </Space>
+                  <Text style={{ fontSize: '12px', color: '#999' }}>
+                    {userSettings.targetSetDate} 至 {userSettings.targetAchievementDate}
+                  </Text>
+                </Space>
+              </Card>
+            )}
 
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <div className="text-sm text-gray-600">身高</div>
-              <button
-                onClick={() => handleEdit('height', userSettings.height)}
-                className="text-sm font-medium text-purple-600"
-              >
-                {userSettings.height} cm
-              </button>
-            </div>
-
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <div className="text-sm text-gray-600">体重</div>
-              <button
-                onClick={() => handleEdit('weight', userSettings.weight)}
-                className="text-sm font-medium text-purple-600"
-              >
-                {userSettings.weight} kg
-              </button>
-            </div>
-
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <div className="text-sm text-gray-600">当前目标</div>
-              <button
-                onClick={() => handleEdit('target', userSettings.target)}
-                className="text-sm font-medium text-purple-600"
-              >
-                {getTargetInfo(userSettings.target).label}
-              </button>
-            </div>
-
-            <div className="flex justify-between items-center py-3">
-              <div className="text-sm text-gray-600">活动水平</div>
-              <button
-                onClick={() => handleEdit('activityLevel', userSettings.activityLevel)}
-                className="text-sm font-medium text-purple-600 text-right max-w-[200px]"
-              >
-                {getActivityLabel(userSettings.activityLevel)}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Calorie Calculation Card */}
-      <div className="px-6 py-6">
-        <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-xl">
-          <h2 className="text-lg font-semibold mb-4">热量计算结果</h2>
-
-          <div className="space-y-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <div className="text-sm opacity-80 mb-1">基础代谢 (BMR)</div>
-              <div className="text-2xl font-bold">{Math.round(bmr)} 千卡/天</div>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <div className="text-sm opacity-80 mb-1">每日总消耗 (TDEE)</div>
-              <div className="text-2xl font-bold">{Math.round(tdee)} 千卡/天</div>
-            </div>
-
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-              <div className="text-sm opacity-80 mb-1">推荐摄入</div>
-              <div className="text-3xl font-bold">{Math.round(targetCal)} 千卡/天</div>
-              <div className="text-xs opacity-75 mt-1">
-                {getTargetInfo(userSettings.target).desc}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Action List */}
-      <div className="px-6 py-6">
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <button
-            onClick={handleReset}
-            className="w-full px-6 py-4 flex justify-between items-center hover:bg-red-50 transition-colors border-b border-gray-100"
-          >
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">🔄</div>
-              <span className="text-gray-800">重置今日所有记录</span>
-            </div>
-            <span className="text-gray-400">›</span>
-          </button>
-
-          <button className="w-full px-6 py-4 flex justify-between items-center hover:bg-purple-50 transition-colors border-b border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">ℹ️</div>
-              <span className="text-gray-800">关于本工具</span>
-            </div>
-            <span className="text-gray-400">›</span>
-          </button>
-
-          <button className="w-full px-6 py-4 flex justify-between items-center hover:bg-purple-50 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">📖</div>
-              <span className="text-gray-800">使用说明</span>
-            </div>
-            <span className="text-gray-400">›</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="px-6 py-8 text-center">
-        <div className="text-xs text-gray-400 mb-2">极简热量饮食管理</div>
-        <div className="text-xs text-gray-300">无广告 · 无会员 · 无打卡 · 无社交</div>
-      </div>
-
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50" onClick={() => setShowEditModal(false)}>
-          <div
-            className="bg-white rounded-t-3xl w-full max-w-lg overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                编辑 {editingField === 'gender' ? '性别' : editingField === 'target' ? '目标' : editingField === 'activityLevel' ? '活动水平' : editingField}
-              </h3>
-
-              {editingField === 'gender' && (
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => setTempValue('male')}
-                    className={`flex-1 py-4 rounded-xl font-medium transition-all ${
-                      tempValue === 'male'
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    男
-                  </button>
-                  <button
-                    onClick={() => setTempValue('female')}
-                    className={`flex-1 py-4 rounded-xl font-medium transition-all ${
-                      tempValue === 'female'
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    女
-                  </button>
+            {/* Calorie Achievement */}
+            <Card style={{ borderRadius: '8px', background: '#FFF1F0', border: 'none' }}>
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Space>
+                    <Avatar size={32} style={{ background: '#FF4D4F' }}>
+                      <AimOutlined />
+                    </Avatar>
+                    <div>
+                      <Text strong style={{ fontSize: '14px' }}>热量达标</Text>
+                      <Text style={{ color: '#666', fontSize: '12px', display: 'block' }}>{calorieSuccessDays}/{targetPlanDays} 天</Text>
+                    </div>
+                  </Space>
+                  <Title level={3} style={{ margin: 0, color: '#FF4D4F', fontSize: '24px' }}>
+                    {calorieRate}%
+                  </Title>
                 </div>
-              )}
+                <Progress percent={Math.min(calorieRate, 100)} strokeColor="#FF4D4F" size="small" showInfo={false} />
+              </Space>
+            </Card>
 
-              {editingField === 'target' && (
-                <div className="space-y-3">
-                  {targets.map((t) => (
-                    <button
-                      key={t.value}
-                      onClick={() => setTempValue(t.value)}
-                      className={`w-full p-4 rounded-xl text-left transition-all ${
-                        tempValue === t.value
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      <div className="font-medium">{t.label}</div>
-                      <div className={`text-xs mt-1 ${tempValue === t.value ? 'text-white/80' : 'text-gray-500'}`}>
-                        {t.desc}
-                      </div>
-                    </button>
-                  ))}
+            {/* Exercise Achievement */}
+            <Card style={{ borderRadius: '8px', background: '#F6FFED', border: 'none' }}>
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Space>
+                    <Avatar size={32} style={{ background: '#52C41A' }}>
+                      <BarChartOutlined />
+                    </Avatar>
+                    <div>
+                      <Text strong style={{ fontSize: '14px' }}>运动消耗</Text>
+                      <Text style={{ color: '#666', fontSize: '12px', display: 'block' }}>{exerciseSuccessDays}/{targetPlanDays} 天</Text>
+                    </div>
+                  </Space>
+                  <Title level={3} style={{ margin: 0, color: '#52C41A', fontSize: '24px' }}>
+                    {exerciseRate}%
+                  </Title>
                 </div>
-              )}
+                <Progress percent={Math.min(exerciseRate, 100)} strokeColor="#52C41A" size="small" showInfo={false} />
+              </Space>
+            </Card>
 
-              {editingField === 'activityLevel' && (
-                <div className="space-y-3">
-                  {activityLevels.map((a) => (
-                    <button
-                      key={a.value}
-                      onClick={() => setTempValue(String(a.value))}
-                      className={`w-full p-4 rounded-xl text-left transition-all ${
-                        tempValue === String(a.value)
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      <div className="font-medium text-sm">{a.label}</div>
-                    </button>
-                  ))}
+            {/* Water Achievement */}
+            <Card style={{ borderRadius: '8px', background: '#F0F5FF', border: 'none' }}>
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Space>
+                    <Avatar size={32} style={{ background: '#1677FF' }}>
+                      <HeartOutlined />
+                    </Avatar>
+                    <div>
+                      <Text strong style={{ fontSize: '14px' }}>喝水达标</Text>
+                      <Text style={{ color: '#666', fontSize: '12px', display: 'block' }}>{waterSuccessDays}/{targetPlanDays} 天</Text>
+                    </div>
+                  </Space>
+                  <Title level={3} style={{ margin: 0, color: '#1677FF', fontSize: '24px' }}>
+                    {waterRate}%
+                  </Title>
                 </div>
-              )}
+                <Progress percent={Math.min(waterRate, 100)} strokeColor="#1677FF" size="small" showInfo={false} />
+              </Space>
+            </Card>
+          </Space>
+        </Card>
 
-              {!['gender', 'target', 'activityLevel'].includes(editingField || '') && (
-                <input
+        {/* Weight Management */}
+        <Card
+          title="体重管理"
+          styles={{ body: { padding: '16px' } }}
+          style={{ borderRadius: '8px' }}
+        >
+          <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+            <Card style={{ borderRadius: '8px', background: '#F6FFED', border: 'none' }}>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
                   type="number"
-                  value={tempValue}
-                  onChange={(e) => setTempValue(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-100 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  autoFocus
+                  placeholder="输入体重(kg)"
+                  value={newWeight}
+                  onChange={(e) => setNewWeight(e.target.value)}
+                  prefix={<LineChartOutlined />}
                 />
-              )}
-            </div>
+                <Button type="primary" icon={<CheckOutlined />} onClick={handleWeightSubmit}>
+                  保存
+                </Button>
+              </Space.Compact>
+            </Card>
 
-            <div className="p-6 flex gap-3">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleSave}
-                className="flex-1 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg transition-all"
-              >
-                保存
-              </button>
-            </div>
-          </div>
+            {weightRecords.length > 0 && (
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: '8px' }}>最近记录</Text>
+                <List
+                  size="small"
+                  dataSource={weightRecords.slice(-5).reverse()}
+                  renderItem={(record) => {
+                    const idx = weightRecords.findIndex(r => r.id === record.id);
+                    const weightDiff = idx === 0 ? null : (() => {
+                      const prev = weightRecords[idx - 1];
+                      return prev ? record.weight - prev.weight : null;
+                    })();
+
+                    return (
+                      <List.Item style={{ background: '#FAFAFA', borderRadius: '8px', padding: '8px 16px' }}>
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <Text strong>{record.weight} kg</Text>
+                            <Text style={{ color: '#666', fontSize: '12px', display: 'block' }}>{record.date} {record.time}</Text>
+                          </div>
+                          {weightDiff !== null && (
+                            <Text
+                              strong
+                              type={weightDiff > 0 ? 'danger' : weightDiff < 0 ? 'success' : undefined}
+                            >
+                              {weightDiff > 0 ? <ArrowUpOutlined /> : weightDiff < 0 ? <ArrowDownOutlined /> : <MinusOutlined />}
+                              {' '}{Math.abs(weightDiff).toFixed(1)} kg
+                            </Text>
+                          )}
+                        </div>
+                      </List.Item>
+                    );
+                  }}
+                />
+              </div>
+            )}
+
+            <WeightChart records={weightRecords} targetWeight={userSettings.targetWeight} />
+          </Space>
+        </Card>
+
+        {/* Settings */}
+        <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: '8px' }}>
+          <Button
+            type="text"
+            block
+            onClick={() => setShowFoodDatabase(true)}
+            style={{ height: 'auto', padding: '16px', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          >
+            <Space>
+              <Avatar size={40} style={{ background: '#FFF7E6' }}>
+                <BookOutlined style={{ color: '#FA8C16' }} />
+              </Avatar>
+              <Text>食物数据库</Text>
+            </Space>
+            <Text type="secondary">›</Text>
+          </Button>
+        </Card>
+      </Space>
+
+      {/* Modals */}
+      {showFoodDatabase && (
+        <div style={{ position: 'fixed', inset: 0, background: '#FFF', zIndex: 1000, overflow: 'auto' }}>
+          <Button
+            onClick={() => setShowFoodDatabase(false)}
+            style={{ position: 'fixed', top: '48px', right: '16px', zIndex: 10 }}
+            type="default"
+            icon={<ArrowUpOutlined />}
+          >
+            返回
+          </Button>
+          <FoodDatabasePage />
         </div>
       )}
+
+      {showWeightTrend && (
+        <div style={{ position: 'fixed', inset: 0, background: '#FFF', zIndex: 1000, overflow: 'auto' }}>
+          <Button
+            onClick={() => setShowWeightTrend(false)}
+            style={{ position: 'fixed', top: '48px', right: '16px', zIndex: 10 }}
+            type="default"
+            icon={<ArrowUpOutlined />}
+          >
+            返回
+          </Button>
+          <WeightTrendPage />
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      <Modal
+        open={showSettings}
+        onCancel={() => setShowSettings(false)}
+        footer={null}
+        closeIcon={<CloseOutlined />}
+        styles={{ body: { padding: '16px' } }}
+      >
+        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+          <Title level={4} style={{ margin: 0 }}>个人资料</Title>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>昵称</Text>
+            <Input
+              value={userSettings.nickname}
+              onChange={(e) => updateUserSettings({ nickname: e.target.value })}
+              prefix={<UserOutlined />}
+            />
+          </div>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>性别</Text>
+            <Button.Group style={{ width: '100%' }}>
+              <Button
+                block
+                type={userSettings.gender === 'male' ? 'primary' : 'default'}
+                onClick={() => updateUserSettings({ gender: 'male' })}
+              >
+                男
+              </Button>
+              <Button
+                block
+                type={userSettings.gender === 'female' ? 'primary' : 'default'}
+                onClick={() => updateUserSettings({ gender: 'female' })}
+              >
+                女
+              </Button>
+            </Button.Group>
+          </div>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>年龄</Text>
+            <Input
+              type="number"
+              value={userSettings.age}
+              onChange={(e) => updateUserSettings({ age: Number(e.target.value) })}
+            />
+          </div>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>身高 (cm)</Text>
+            <Input
+              type="number"
+              value={userSettings.height}
+              onChange={(e) => updateUserSettings({ height: Number(e.target.value) })}
+            />
+          </div>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>体重 (kg)</Text>
+            <Input
+              type="number"
+              value={userSettings.weight}
+              onChange={(e) => updateUserSettings({ weight: Number(e.target.value) })}
+            />
+          </div>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>目标体重 (kg)</Text>
+            <Input
+              type="number"
+              value={userSettings.targetWeight || ''}
+              onChange={(e) => updateUserSettings({ targetWeight: Number(e.target.value) })}
+            />
+          </div>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>当前目标</Text>
+            <Button.Group style={{ width: '100%' }}>
+              {[
+                { key: 'fat', label: '减脂' },
+                { key: 'keep', label: '维持' },
+                { key: 'muscle', label: '增肌' },
+              ].map((item) => (
+                <Button
+                  key={item.key}
+                  block
+                  type={userSettings.target === item.key ? 'primary' : 'default'}
+                  onClick={() => updateUserSettings({ target: item.key as 'fat' | 'keep' | 'muscle' })}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </Button.Group>
+          </div>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>活动水平</Text>
+            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+              {[
+                { value: 1.2, label: '久坐办公' },
+                { value: 1.375, label: '轻度活动' },
+                { value: 1.55, label: '中度活动' },
+                { value: 1.725, label: '高强度' },
+              ].map((item) => (
+                <Button
+                  key={item.value}
+                  block
+                  type={userSettings.activityLevel === item.value ? 'primary' : 'default'}
+                  onClick={() => updateUserSettings({ activityLevel: item.value })}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </Space>
+          </div>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>目标设定日期</Text>
+            <DatePicker
+              style={{ width: '100%', height: '40px' }}
+              value={userSettings.targetSetDate ? dayjs(userSettings.targetSetDate) : undefined}
+              onChange={(date) => {
+                if (date) {
+                  updateUserSettings({ targetSetDate: date.format('YYYY-MM-DD') });
+                }
+              }}
+              placeholder="选择目标设定日期"
+            />
+          </div>
+
+          <div>
+            <Text style={{ display: 'block', marginBottom: '8px' }}>目标达成日期</Text>
+            <DatePicker
+              style={{ width: '100%', height: '40px' }}
+              value={userSettings.targetAchievementDate ? dayjs(userSettings.targetAchievementDate) : undefined}
+              onChange={(date) => {
+                if (date) {
+                  updateUserSettings({ targetAchievementDate: date.format('YYYY-MM-DD') });
+                }
+              }}
+              placeholder="选择目标达成日期"
+            />
+          </div>
+
+          <Button type="primary" block size="large" onClick={() => setShowSettings(false)}>
+            保存设置
+          </Button>
+        </Space>
+      </Modal>
     </div>
   );
 }
-
-export default ProfilePage;
