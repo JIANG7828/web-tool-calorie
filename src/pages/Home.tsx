@@ -59,6 +59,11 @@ export default function Home() {
     setTodayMealPlan(getRecipesByDate(selectedDateStr));
   };
 
+  // Auto refresh when date changes
+  useEffect(() => {
+    refreshTodayMealPlan();
+  }, [selectedDateStr]);
+
   const dateRecords = getRecordsByDate(selectedDateStr);
   const dateExercises = getExercisesByDate(selectedDateStr);
   const waterCount = getWaterCountByDate(selectedDateStr);
