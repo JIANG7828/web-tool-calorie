@@ -65,10 +65,11 @@ export interface WeightRecord {
 
 export interface CalorieState {
   userSettings: UserSettings;
-  todayRecords: FoodRecord[];
-  todayExercises: ExerciseRecord[];
+  allFoodRecords: FoodRecord[];
+  allExerciseRecords: ExerciseRecord[];
   checkIns: CheckInRecord[];
   weightRecords: WeightRecord[];
+  waterRecords: { date: string; count: number }[];
   todayWaterCount: number;
 }
 
@@ -86,6 +87,11 @@ export interface CalorieStore extends CalorieState {
   resetTodayRecords: () => void;
   incrementWater: () => void;
   resetWater: () => void;
+  addWater: () => void;
+  getRecordsByDate: (date: string) => FoodRecord[];
+  getExercisesByDate: (date: string) => ExerciseRecord[];
+  getWaterCountByDate: (date: string) => number;
+  setWaterCountByDate: (date: string, count: number) => void;
   getTodayTotalCalories: () => number;
   getTodayExerciseCalories: () => number;
   getTodayMacros: () => MacroNutrients;
@@ -93,6 +99,12 @@ export interface CalorieStore extends CalorieState {
   getMealTypeLabel: (type: string) => string;
   isMealRecorded: (type: string) => boolean;
   getInitialWeight: () => number | undefined;
+  evaluateLastMeal: () => any;
+  canShowAd: () => boolean;
+  recordAdView: () => void;
+  memberLevel: 'free' | 'pro' | 'premium';
+  upgradeMember: (level: 'free' | 'pro' | 'premium') => void;
+  resetAllData: () => void;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -105,15 +117,31 @@ const DEFAULT_SETTINGS: UserSettings = {
   activityLevel: 1.2,
 };
 
+function getStoreName(): string {
+  try {
+    const data = localStorage.getItem('health_app_current_user');
+    if (data) {
+      const user = JSON.parse(data);
+      return `calorie-store-${user.id}`;
+    }
+  } catch {}
+  return 'calorie-store-default';
+}
+
+const defaultState: CalorieState = {
+  userSettings: DEFAULT_SETTINGS,
+  allFoodRecords: [],
+  allExerciseRecords: [],
+  checkIns: [],
+  weightRecords: [],
+  waterRecords: [],
+  todayWaterCount: 0,
+};
+
 export const useCalorieStore = create<CalorieStore>()(
   persist(
     (set, get) => ({
-      userSettings: DEFAULT_SETTINGS,
-      todayRecords: [],
-      todayExercises: [],
-      checkIns: [],
-      weightRecords: [],
-      todayWaterCount: 0,
+      ...defaultState,
 
       updateUserSettings: (settings: Partial<UserSettings>) => {
         set((state) => ({
@@ -122,26 +150,106 @@ export const useCalorieStore = create<CalorieStore>()(
       },
 
       addFoodRecord: (record: FoodRecord) => {
-        set((state) => ({
-          todayRecords: [...state.todayRecords, record],
-        }));
+        set((state) => {
+          const newRecords = [...state.allFoodRecords, record];
+          const today = record.date;
+          const dayCal = newRecords
+            .filter((r) => r.date === today)
+            .reduce((sum, r) => sum + r.calorie, 0);
+          const dayExercise = state.allExerciseRecords
+            .filter((r) => r.date === today)
+            .reduce((sum, r) => sum + r.calorie, 0);
+          const dayWater = state.waterRecords.find((r) => r.date === today)?.count || 0;
+          const weight = state.userSettings.weight || 55;
+          const activityLevel = state.userSettings.activityLevel || 1.2;
+          const bmr = weight * 22;
+          const tdee = bmr * activityLevel;
+          let targetCal = Math.round(tdee);
+          if (state.userSettings.target === 'fat') targetCal = Math.round(tdee - 400);
+          else if (state.userSettings.target === 'muscle') targetCal = Math.round(tdee + 300);
+
+          const existingIdx = state.checkIns.findIndex((c) => c.date === today);
+          const checkInData: CheckInRecord = {
+            id: existingIdx >= 0 ? state.checkIns[existingIdx].id : Date.now().toString(),
+            date: today,
+            completed: true,
+            calorie: dayCal,
+            target: targetCal,
+            exerciseCal: dayExercise,
+            waterCount: dayWater,
+            waterTarget: 8,
+            exerciseTarget: 300,
+          };
+
+          let newCheckIns = [...state.checkIns];
+          if (existingIdx >= 0) {
+            newCheckIns[existingIdx] = checkInData;
+          } else {
+            newCheckIns = [checkInData, ...newCheckIns];
+          }
+
+          return {
+            allFoodRecords: newRecords,
+            checkIns: newCheckIns,
+          };
+        });
       },
 
       removeFoodRecord: (id: string) => {
         set((state) => ({
-          todayRecords: state.todayRecords.filter((r) => r.id !== id),
+          allFoodRecords: state.allFoodRecords.filter((r) => r.id !== id),
         }));
       },
 
       addExerciseRecord: (record: ExerciseRecord) => {
-        set((state) => ({
-          todayExercises: [...state.todayExercises, record],
-        }));
+        set((state) => {
+          const newRecords = [...state.allExerciseRecords, record];
+          const today = record.date;
+          const dayCal = state.allFoodRecords
+            .filter((r) => r.date === today)
+            .reduce((sum, r) => sum + r.calorie, 0);
+          const dayExercise = newRecords
+            .filter((r) => r.date === today)
+            .reduce((sum, r) => sum + r.calorie, 0);
+          const dayWater = state.waterRecords.find((r) => r.date === today)?.count || 0;
+          const weight = state.userSettings.weight || 55;
+          const activityLevel = state.userSettings.activityLevel || 1.2;
+          const bmr = weight * 22;
+          const tdee = bmr * activityLevel;
+          let targetCal = Math.round(tdee);
+          if (state.userSettings.target === 'fat') targetCal = Math.round(tdee - 400);
+          else if (state.userSettings.target === 'muscle') targetCal = Math.round(tdee + 300);
+
+          const existingIdx = state.checkIns.findIndex((c) => c.date === today);
+          const checkInData: CheckInRecord = {
+            id: existingIdx >= 0 ? state.checkIns[existingIdx].id : Date.now().toString(),
+            date: today,
+            completed: true,
+            calorie: dayCal,
+            target: targetCal,
+            exerciseCal: dayExercise,
+            waterCount: dayWater,
+            waterTarget: 8,
+            exerciseTarget: 300,
+          };
+
+          let newCheckIns = [...state.checkIns];
+          if (existingIdx >= 0) {
+            newCheckIns[existingIdx] = checkInData;
+          } else {
+            newCheckIns = [checkInData, ...newCheckIns];
+          }
+
+          return {
+            allExerciseRecords: newRecords,
+            checkIns: newCheckIns,
+          };
+        });
       },
 
       removeExerciseRecord: (id: string) => {
         set((state) => ({
-          todayExercises: state.todayExercises.filter((r) => r.id !== id),
+          allExerciseRecords: state.allExerciseRecords.filter((r) => r.id !== id),
         }));
       },
 
@@ -186,7 +294,11 @@ export const useCalorieStore = create<CalorieStore>()(
       },
 
       resetTodayRecords: () => {
-        set({ todayRecords: [], todayExercises: [] });
+        const today = new Date().toISOString().split('T')[0];
+        set((state) => ({
+          allFoodRecords: state.allFoodRecords.filter((r) => r.date !== today),
+          allExerciseRecords: state.allExerciseRecords.filter((r) => r.date !== today),
+        }));
       },
 
       incrementWater: () => {
@@ -197,23 +309,57 @@ export const useCalorieStore = create<CalorieStore>()(
         set({ todayWaterCount: 0 });
       },
 
+      getRecordsByDate: (date: string) => {
+        return get().allFoodRecords.filter((r) => r.date === date);
+      },
+
+      getExercisesByDate: (date: string) => {
+        return get().allExerciseRecords.filter((r) => r.date === date);
+      },
+
+      getWaterCountByDate: (date: string) => {
+        const record = get().waterRecords.find((r) => r.date === date);
+        return record?.count || 0;
+      },
+
+      setWaterCountByDate: (date: string, count: number) => {
+        set((state) => {
+          const existing = state.waterRecords.findIndex((r) => r.date === date);
+          if (existing >= 0) {
+            const newRecords = [...state.waterRecords];
+            newRecords[existing] = { date, count };
+            return { waterRecords: newRecords };
+          }
+          return { waterRecords: [...state.waterRecords, { date, count }] };
+        });
+      },
+
       getTodayTotalCalories: () => {
-        return get().todayRecords.reduce((sum, r) => sum + r.calorie, 0);
+        const today = new Date().toISOString().split('T')[0];
+        return get().allFoodRecords
+          .filter((r) => r.date === today)
+          .reduce((sum, r) => sum + r.calorie, 0);
       },
 
       getTodayExerciseCalories: () => {
-        return get().todayExercises.reduce((sum, r) => sum + r.calorie, 0);
+        const today = new Date().toISOString().split('T')[0];
+        return get().allExerciseRecords
+          .filter((r) => r.date === today)
+          .reduce((sum, r) => sum + r.calorie, 0);
       },
 
       getTodayMacros: () => {
+        const today = new Date().toISOString().split('T')[0];
         const macros = { protein: 0, fat: 0, carbs: 0 };
-        get().todayRecords.forEach((r) => {
-          if (r.macro) {
-            macros.protein += r.macro.protein;
-            macros.fat += r.macro.fat;
-            macros.carbs += r.macro.carbs;
-          }
-        });
+        get().allFoodRecords
+          .filter((r) => r.date === today)
+          .forEach((r) => {
+            if (r.macro) {
+              macros.protein += r.macro.protein;
+              macros.fat += r.macro.fat;
+              macros.carbs += r.macro.carbs;
+            }
+          });
         return macros;
       },
 
@@ -237,7 +383,8 @@ export const useCalorieStore = create<CalorieStore>()(
       },
 
       isMealRecorded: (type: string) => {
-        return get().todayRecords.some((r) => r.mealType === type);
+        const today = new Date().toISOString().split('T')[0];
+        return get().allFoodRecords.some((r) => r.date === today && r.mealType === type);
       },
 
       getInitialWeight: () => {
@@ -247,9 +394,126 @@ export const useCalorieStore = create<CalorieStore>()(
         }
         return userSettings.weight;
       },
+
+      addWater: () => {
+        const today = new Date().toISOString().split('T')[0];
+        set((state) => {
+          const newCount = state.todayWaterCount + 1;
+          const existing = state.waterRecords.findIndex((r) => r.date === today);
+          let newWaterRecords = [...state.waterRecords];
+          if (existing >= 0) {
+            newWaterRecords[existing] = { date: today, count: newCount };
+          } else {
+            newWaterRecords = [...newWaterRecords, { date: today, count: newCount }];
+          }
+
+          const dayCal = state.allFoodRecords
+            .filter((r) => r.date === today)
+            .reduce((sum, r) => sum + r.calorie, 0);
+          const dayExercise = state.allExerciseRecords
+            .filter((r) => r.date === today)
+            .reduce((sum, r) => sum + r.calorie, 0);
+          const weight = state.userSettings.weight || 55;
+          const activityLevel = state.userSettings.activityLevel || 1.2;
+          const bmr = weight * 22;
+          const tdee = bmr * activityLevel;
+          let targetCal = Math.round(tdee);
+          if (state.userSettings.target === 'fat') targetCal = Math.round(tdee - 400);
+          else if (state.userSettings.target === 'muscle') targetCal = Math.round(tdee + 300);
+
+          const existingIdx = state.checkIns.findIndex((c) => c.date === today);
+          const checkInData: CheckInRecord = {
+            id: existingIdx >= 0 ? state.checkIns[existingIdx].id : Date.now().toString(),
+            date: today,
+            completed: true,
+            calorie: dayCal,
+            target: targetCal,
+            exerciseCal: dayExercise,
+            waterCount: newCount,
+            waterTarget: 8,
+            exerciseTarget: 300,
+          };
+
+          let newCheckIns = [...state.checkIns];
+          if (existingIdx >= 0) {
+            newCheckIns[existingIdx] = checkInData;
+          } else {
+            newCheckIns = [checkInData, ...newCheckIns];
+          }
+
+          return {
+            todayWaterCount: newCount,
+            waterRecords: newWaterRecords,
+            checkIns: newCheckIns,
+          };
+        });
+      },
+
+      evaluateLastMeal: () => {
+        const today = new Date().toISOString().split('T')[0];
+        const todayRecords = get().allFoodRecords.filter((r) => r.date === today);
+        if (todayRecords.length === 0) {
+          return null;
+        }
+        const lastMeal = [...todayRecords].sort((a, b) => b.timestamp - a.timestamp)[0];
+        const totalCal = todayRecords.reduce((s, r) => s + r.calorie, 0);
+        const totalProtein = todayRecords.reduce((s, r) => s + (r.macro?.protein || 0), 0);
+        const totalFat = todayRecords.reduce((s, r) => s + (r.macro?.fat || 0), 0);
+        const totalCarbs = todayRecords.reduce((s, r) => s + (r.macro?.carbs || 0), 0);
+        const totalMacro = totalProtein + totalFat + totalCarbs;
+        const settings = get().userSettings;
+        const targetCal = get().checkIns.find((c) => c.date === today)?.target || 1400;
+        
+        let rating = '一般';
+        if (totalCal <= targetCal * 1.1 && totalCal >= targetCal * 0.8) {
+          rating = '优秀';
+        } else if (totalCal > targetCal * 1.3) {
+          rating = '超标';
+        } else if (totalCal < targetCal * 0.5) {
+          rating = '过少';
+        } else if (totalCal <= targetCal * 1.2) {
+          rating = '良好';
+        }
+
+        return {
+          rating,
+          calories: totalCal,
+          macros: {
+            protein: totalProtein,
+            fat: totalFat,
+            carbs: totalCarbs,
+            percentage: {
+              protein: totalMacro > 0 ? Math.round((totalProtein / totalMacro) * 100) : 0,
+              fat: totalMacro > 0 ? Math.round((totalFat / totalMacro) * 100) : 0,
+              carbs: totalMacro > 0 ? Math.round((totalCarbs / totalMacro) * 100) : 0,
+            },
+          },
+          pros: ['饮食记录完整', '营养搭配合理'],
+          cons: totalCal > targetCal ? ['热量摄入偏高'] : [],
+          suggestions: [lastMeal.mealType === 'dinner' ? '晚餐适量，注意控制' : '继续保持健康饮食'],
+          mealType: lastMeal.mealType,
+        };
+      },
+
+      canShowAd: () => {
+        return false;
+      },
+
+      recordAdView: () => {
+      },
+
+      memberLevel: 'free',
+
+      upgradeMember: (level: 'free' | 'pro' | 'premium') => {
+        set({ memberLevel: level });
+      },
+
+      resetAllData: () => {
+        set(defaultState);
+      },
     }),
     {
-      name: 'calorie-store',
+      name: getStoreName(),
     }
   )
 );

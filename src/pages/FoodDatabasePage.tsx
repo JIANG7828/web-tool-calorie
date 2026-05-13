@@ -81,29 +81,24 @@ export default function FoodDatabasePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5F7FA' }}>
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #52C41A 0%, #73D13D 100%)',
-        padding: '48px 20px 24px',
-        borderBottomLeftRadius: '16px',
-        borderBottomRightRadius: '16px',
-      }}>
-        <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <Button type="text" icon={<ArrowLeftOutlined />} style={{ color: '#FFF', fontSize: '18px' }} />
-          <Title level={4} style={{ margin: 0, color: '#FFF' }}>食物数据库</Title>
-          <Button type="text" icon={<PlusCircleOutlined />} style={{ color: '#FFF', fontSize: '18px' }} />
-        </Space>
+      {/* Clean white header */}
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <Button type="text" icon={<ArrowLeftOutlined />} style={{ color: '#333', fontSize: '18px' }} />
+          <Title level={4} style={{ margin: 0, color: '#333' }}>食物数据库</Title>
+          <Button type="text" icon={<PlusCircleOutlined />} style={{ color: '#333', fontSize: '18px' }} />
+        </div>
 
         <Input
           placeholder="海量食物库搜索"
-          prefix={<SearchOutlined style={{ color: '#A0D468' }} />}
+          prefix={<SearchOutlined style={{ color: '#999' }} />}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
             borderRadius: '24px',
             height: '44px',
             fontSize: '14px',
-            background: 'rgba(255,255,255,0.9)',
+            background: '#F5F7FA',
             border: 'none',
           }}
         />

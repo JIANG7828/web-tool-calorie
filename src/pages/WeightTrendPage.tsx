@@ -23,14 +23,14 @@ function WeightChart({ data, targetWeight }: { data: { date: string; weight: num
   const weights = data.map(d => d.weight * 2); // Convert kg to jin
   const maxWeight = Math.max(...weights, targetWeight ? targetWeight * 2 : 0, 100);
   const minWeight = Math.min(...weights, targetWeight ? targetWeight * 2 : 100) * 0.9;
-  const range = maxWeight - minWeight;
+  const range = Math.max(maxWeight - minWeight, 1);
 
   const chartWidth = 300;
   const chartHeight = 180;
   const padding = 20;
 
   const points = data.map((d, i) => {
-    const x = padding + (i / (data.length - 1)) * (chartWidth - padding * 2);
+    const x = data.length > 1 ? padding + (i / (data.length - 1)) * (chartWidth - padding * 2) : chartWidth / 2;
     const y = chartHeight - padding - ((d.weight * 2 - minWeight) / range) * (chartHeight - padding * 2);
     return { x, y, date: d.date, weight: d.weight * 2 };
   });
@@ -138,7 +138,11 @@ function WeightChart({ data, targetWeight }: { data: { date: string; weight: num
   );
 }
 
-export default function WeightTrendPage() {
+interface WeightTrendPageProps {
+  onBack?: () => void;
+}
+
+export default function WeightTrendPage({ onBack }: WeightTrendPageProps) {
   const { userSettings, weightRecords, addWeightRecord, getInitialWeight } = useCalorieStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newWeight, setNewWeight] = useState('');
@@ -164,64 +168,54 @@ export default function WeightTrendPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5F7FA' }}>
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #52C41A 0%, #73D13D 100%)',
-        padding: '48px 20px 32px',
-        borderBottomLeftRadius: '16px',
-        borderBottomRightRadius: '16px',
-      }}>
-        <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <Button type="text" icon={<ArrowLeftOutlined />} style={{ color: '#FFF', fontSize: '18px' }} />
-          <Title level={4} style={{ margin: 0, color: '#FFF' }}>减脂趋势</Title>
-          <Button type="text" style={{ color: '#FFF', fontSize: '18px' }} />
-        </Space>
-
-        <Card
-          style={{
-            borderRadius: '12px',
-            background: 'rgba(255,255,255,0.2)',
-            border: 'none',
-            backdropFilter: 'blur(10px)',
-          }}
-        >
-          <Space direction="vertical" align="center" style={{ width: '100%' }}>
-            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>累计减重</Text>
-            <Title level={1} style={{ margin: 0, color: '#FFF', fontSize: '48px' }}>
-              {totalLoss.toFixed(1)}
-              <span style={{ fontSize: '20px', fontWeight: 'normal' }}>斤</span>
-            </Title>
-
-            <Space style={{ width: '100%', justifyContent: 'space-around', marginTop: '16px' }}>
-              <div style={{ textAlign: 'center' }}>
-                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', display: 'block' }}>初始体重</Text>
-                <Title level={3} style={{ margin: 4, color: '#FFF' }}>
-                  {initialWeight ? (initialWeight * 2).toFixed(0) : '-'}斤
-                </Title>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', display: 'block' }}>当前体重</Text>
-                <Title level={3} style={{ margin: 4, color: '#FFF' }}>
-                  {(currentWeight * 2).toFixed(0)}斤
-                </Title>
-                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: '10px' }}>今日更新</Text>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', display: 'block' }}>目标体重</Text>
-                <Title level={3} style={{ margin: 4, color: '#FFF' }}>
-                  {targetWeight ? (targetWeight * 2).toFixed(0) : '-'}斤
-                </Title>
-              </div>
-            </Space>
-          </Space>
-        </Card>
+      {/* Clean white header */}
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {onBack && (
+              <Button
+                onClick={onBack}
+                type="text"
+                icon={<ArrowLeftOutlined />}
+                style={{ color: '#333', fontSize: '18px' }}
+              />
+            )}
+            <Title level={4} style={{ margin: 0, color: '#333' }}>体重管理</Title>
+          </div>
+          <div style={{ fontSize: '24px' }}>🏋️</div>
+        </div>
+        <Text style={{ color: '#666', fontSize: '14px' }}>
+          {weightRecords.length > 0 ? `共记录 ${weightRecords.length} 次体重` : '开始记录您的体重变化'}
+        </Text>
       </div>
 
-      {/* Weight Chart */}
-      <div style={{ padding: '16px' }}>
-        <Card style={{ borderRadius: '12px', borderColor: '#B7EB8F', borderWidth: '2px' }}>
+      <div style={{ padding: '0 20px 20px' }}>
+        <Card style={{ borderRadius: '8px', marginBottom: '16px' }} styles={{ body: { padding: '16px' } }}>
+          <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+            <div>
+              <Text style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '4px' }}>初始体重</Text>
+              <Title level={3} style={{ margin: 0, color: '#1890FF' }}>
+                {initialWeight ? (initialWeight * 2).toFixed(0) : '-'}斤
+              </Title>
+            </div>
+            <div style={{ borderLeft: '1px solid #F0F0F0', paddingLeft: '24px' }}>
+              <Text style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '4px' }}>当前体重</Text>
+              <Title level={3} style={{ margin: 0, color: '#52C41A' }}>
+                {(currentWeight * 2).toFixed(0)}斤
+              </Title>
+            </div>
+            <div style={{ borderLeft: '1px solid #F0F0F0', paddingLeft: '24px' }}>
+              <Text style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '4px' }}>目标体重</Text>
+              <Title level={3} style={{ margin: 0, color: '#FA8C16' }}>
+                {targetWeight ? (targetWeight * 2).toFixed(0) : '-'}斤
+              </Title>
+            </div>
+          </div>
+        </Card>
+
+        <Card style={{ borderRadius: '8px', marginBottom: '16px' }} styles={{ body: { padding: '16px' } }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-            <Title level={5} style={{ margin: 0, color: '#52C41A' }}>体重</Title>
+            <Title level={5} style={{ margin: 0, color: '#1890FF' }}>体重趋势</Title>
             <Text style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>(斤)</Text>
             {targetWeight && (
               <Text style={{ color: '#52C41A', fontSize: '12px', marginLeft: '8px' }}>
@@ -231,13 +225,10 @@ export default function WeightTrendPage() {
           </div>
           <WeightChart data={chartData} targetWeight={targetWeight} />
         </Card>
-      </div>
 
-      {/* Recent Records */}
-      {weightRecords.length > 0 && (
-        <div style={{ padding: '0 16px' }}>
-          <Card title="近期记录" styles={{ body: { padding: '12px' } }} style={{ borderRadius: '12px' }}>
-            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+        {weightRecords.length > 0 && (
+          <Card title="近期记录" styles={{ body: { padding: '12px' } }} style={{ borderRadius: '8px', marginBottom: '16px' }}>
+            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
               {weightRecords.slice(0, 7).map((record, index) => {
                 const prevWeight = weightRecords[index + 1]?.weight;
                 const diff = prevWeight !== undefined ? ((record.weight - prevWeight) * 2).toFixed(1) : null;
@@ -278,27 +269,26 @@ export default function WeightTrendPage() {
               })}
             </Space>
           </Card>
-        </div>
-      )}
+        )}
 
-      {/* Add Button */}
-      <div style={{ padding: '24px 16px', paddingBottom: '48px' }}>
-        <Button
-          type="primary"
-          block
-          size="large"
-          icon={<PlusOutlined />}
-          onClick={() => setShowAddModal(true)}
-          style={{
-            background: 'linear-gradient(90deg, #52C41A, #73D13D)',
-            borderRadius: '24px',
-            height: '52px',
-            fontSize: '16px',
-            fontWeight: 600,
-          }}
-        >
-          +记录体重
-        </Button>
+        <div style={{ padding: '0 16px' }}>
+          <Button
+            type="primary"
+            block
+            size="large"
+            icon={<PlusOutlined />}
+            onClick={() => setShowAddModal(true)}
+            style={{
+              background: '#1677FF',
+              borderRadius: '24px',
+              height: '52px',
+              fontSize: '16px',
+              fontWeight: 600,
+            }}
+          >
+            +记录体重
+          </Button>
+        </div>
       </div>
 
       {/* Add Weight Modal */}
@@ -308,7 +298,7 @@ export default function WeightTrendPage() {
         footer={null}
         styles={{ body: { padding: '16px' } }}
       >
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
           <Title level={4} style={{ margin: 0 }}>记录体重</Title>
 
           <Input

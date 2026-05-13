@@ -121,7 +121,9 @@ export default function ExercisePage() {
   const [lastExercise, setLastExercise] = useState<any>(null);
   const [selectedActivity, setSelectedActivity] = useState<typeof DAILY_ACTIVITIES[0] | typeof SPORT_ACTIVITIES[0] | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const { userSettings, todayExercises, addExerciseRecord, removeExerciseRecord, todayWaterCount, getTodayExerciseCalories } = useCalorieStore();
+  const { userSettings, allExerciseRecords, addExerciseRecord, removeExerciseRecord, getTodayExerciseCalories } = useCalorieStore();
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayExercises = allExerciseRecords.filter(r => r.date === todayStr);
 
   const totalCal = getTodayExerciseCalories();
 
@@ -191,29 +193,24 @@ export default function ExercisePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5F7FA' }}>
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #D46B08 0%, #FA8C16 100%)',
-        padding: '48px 20px 24px',
-        borderBottomLeftRadius: '16px',
-        borderBottomRightRadius: '16px',
-      }}>
-        <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <Title level={4} style={{ margin: 0, color: '#FFF' }}>运动项目</Title>
-          <Button type="text" icon={<SearchOutlined />} style={{ color: '#FFF', fontSize: '18px' }} />
-        </Space>
+      {/* Clean white header */}
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <Title level={4} style={{ margin: 0, color: '#333' }}>运动项目</Title>
+          <Button type="text" icon={<SearchOutlined />} style={{ fontSize: '18px' }} />
+        </div>
 
         <Input
           placeholder="搜索运动项目"
-          prefix={<SearchOutlined style={{ color: '#FFB74D' }} />}
+          prefix={<SearchOutlined style={{ color: '#999' }} />}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
             borderRadius: '24px',
             height: '44px',
             fontSize: '14px',
-            background: 'rgba(255,255,255,0.9)',
-            border: 'none',
+            background: '#FFF',
+            border: '1px solid #E0E0E0',
           }}
         />
       </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useCalorieStore } from '../store/calorieStore';
 import { getBMR, getTDEE, getTargetCal } from '../utils/calorie';
 import { searchFood, Food } from '../utils/foodDatabase';
@@ -17,7 +17,9 @@ export default function DietRecordPage() {
   const [activeMealType, setActiveMealType] = useState('all');
   const [showEvaluation, setShowEvaluation] = useState(false);
   const [prevRecordCount, setPrevRecordCount] = useState(0);
-  const { todayRecords, getTodayTotalCalories, getTodayExerciseCalories, evaluateLastMeal, isMealRecorded } = useCalorieStore();
+  const { allFoodRecords, getTodayTotalCalories, getTodayExerciseCalories, evaluateLastMeal, isMealRecorded } = useCalorieStore();
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayRecords = allFoodRecords.filter(r => r.date === todayStr);
 
   const todayCal = getTodayTotalCalories();
   const exerciseCal = getTodayExerciseCalories();
@@ -34,16 +36,21 @@ export default function DietRecordPage() {
   };
 
   // Show evaluation when new record added
-  if (todayRecords.length > prevRecordCount && prevRecordCount > 0) {
-    setTimeout(() => {
-      setShowEvaluation(true);
-      setPrevRecordCount(todayRecords.length);
-    }, 300);
-  }
+  useEffect(() => {
+    if (todayRecords.length > prevRecordCount && prevRecordCount > 0) {
+      const timer = setTimeout(() => {
+        setShowEvaluation(true);
+        setPrevRecordCount(todayRecords.length);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [todayRecords.length, prevRecordCount]);
 
-  if (prevRecordCount === 0 && todayRecords.length > 0) {
-    setPrevRecordCount(todayRecords.length);
-  }
+  useEffect(() => {
+    if (prevRecordCount === 0 && todayRecords.length > 0) {
+      setPrevRecordCount(todayRecords.length);
+    }
+  }, [todayRecords.length, prevRecordCount]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 pb-24">

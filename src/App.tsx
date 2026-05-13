@@ -1,17 +1,32 @@
-import { Layout, ConfigProvider } from 'antd';
+import { Layout, ConfigProvider, App as AntdApp } from 'antd';
 import { useState, useEffect } from 'react';
 import Home from './pages/Home';
 import ExercisePage from './pages/ExercisePage';
 import ProfilePage from './pages/ProfilePage';
 import TakeoutPage from './pages/TakeoutPage';
-import { HomeOutlined, BookOutlined, FireOutlined, UserOutlined } from '@ant-design/icons';
+import FoodRecognitionPage from './pages/FoodRecognitionPage';
+import { HomeOutlined, BookOutlined, CameraOutlined, FireOutlined, UserOutlined } from '@ant-design/icons';
+import { useCalorieStore } from './store/calorieStore';
 
 const { Content } = Layout;
 
-type TabType = 'home' | 'recipe' | 'exercise' | 'profile';
+type TabType = 'home' | 'recipe' | 'recognition' | 'exercise' | 'profile';
 
-function App() {
+interface AddFoodRecordEvent {
+  name: string;
+  calorie: number;
+  time: string;
+  mealType: string;
+  macro: {
+    protein: number;
+    fat: number;
+    carbs: number;
+  };
+}
+
+function AppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  const { addFoodRecord } = useCalorieStore();
 
   useEffect(() => {
     const handleNavigate = (event: Event) => {
@@ -21,9 +36,31 @@ function App() {
       }
     };
 
+    const handleAddFoodRecord = (event: Event) => {
+      const customEvent = event as CustomEvent<AddFoodRecordEvent>;
+      if (customEvent.detail) {
+        const { name, calorie, time, mealType, macro } = customEvent.detail;
+        const now = new Date();
+        addFoodRecord({
+          id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
+          date: now.toISOString().split('T')[0],
+          name,
+          calorie,
+          time,
+          mealType: mealType as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+          macro,
+          timestamp: now.getTime(),
+        });
+      }
+    };
+
     window.addEventListener('navigate', handleNavigate as EventListener);
-    return () => window.removeEventListener('navigate', handleNavigate as EventListener);
-  }, []);
+    window.addEventListener('addFoodRecord', handleAddFoodRecord as EventListener);
+    return () => {
+      window.removeEventListener('navigate', handleNavigate as EventListener);
+      window.removeEventListener('addFoodRecord', handleAddFoodRecord as EventListener);
+    };
+  }, [addFoodRecord]);
 
   const renderPage = () => {
     switch (activeTab) {
@@ -31,6 +68,8 @@ function App() {
         return <Home />;
       case 'recipe':
         return <TakeoutPage />;
+      case 'recognition':
+        return <FoodRecognitionPage />;
       case 'exercise':
         return <ExercisePage />;
       case 'profile':
@@ -67,7 +106,8 @@ function App() {
         },
       }}
     >
-      <Layout style={{ minHeight: '100vh', backgroundColor: '#F5F7FA', maxWidth: '480px', margin: '0 auto' }}>
+      <AntdApp>
+        <Layout style={{ minHeight: '100vh', backgroundColor: '#F5F7FA', maxWidth: '480px', margin: '0 auto' }}>
         <Layout.Content style={{ paddingBottom: '64px' }}>
           {renderPage()}
         </Layout.Content>
@@ -89,6 +129,7 @@ function App() {
             {[
               { key: 'home' as TabType, icon: <HomeOutlined />, label: '首页' },
               { key: 'recipe' as TabType, icon: <BookOutlined />, label: '菜谱' },
+              { key: 'recognition' as TabType, icon: <CameraOutlined />, label: '识食物' },
               { key: 'exercise' as TabType, icon: <FireOutlined />, label: '运动' },
               { key: 'profile' as TabType, icon: <UserOutlined />, label: '我的' },
             ].map((item) => (
@@ -115,8 +156,9 @@ function App() {
           </div>
         </Layout.Footer>
       </Layout>
+      </AntdApp>
     </ConfigProvider>
   );
 }
 
-export default App;
+export default AppContent;

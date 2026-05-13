@@ -41,9 +41,14 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
     return emojis[rating] || '';
   };
 
-  const total = evaluation.macros.protein + evaluation.macros.fat + evaluation.macros.carbs;
+  const protein = evaluation.macros?.protein || 0;
+  const fat = evaluation.macros?.fat || 0;
+  const carbs = evaluation.macros?.carbs || 0;
+  const total = protein + fat + carbs;
+  const percentageProtein = evaluation.macros?.percentage?.protein || 0;
+  const percentageFat = evaluation.macros?.percentage?.fat || 0;
+  const percentageCarbs = evaluation.macros?.percentage?.carbs || 0;
 
-  // Get next meal suggestion based on current meal type
   const getNextMealSuggestion = () => {
     const mealOrder = ['早餐', '午餐', '晚餐', '加餐'];
     const currentIndex = mealOrder.indexOf(evaluation.mealType);
@@ -55,7 +60,6 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
 
   return (
     <div className="fixed inset-0 bg-white z-50 overflow-auto animate-slide-up">
-      {/* Header */}
       <div className="bg-gradient-to-b from-green-400/20 to-transparent pt-12 pb-6 px-4">
         <div className="flex items-center justify-center gap-3">
           <span className="text-3xl"></span>
@@ -64,7 +68,6 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
         <p className="text-center text-gray-500 mt-2">本次饮食的评价为</p>
       </div>
 
-      {/* Rating Circle */}
       <div className="mx-4 mb-6">
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -74,7 +77,6 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
             </span>
           </div>
 
-          {/* Circular Progress */}
           <div className="relative w-32 h-32 mx-auto mb-4">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="40" fill="none" stroke="#f0f0f0" strokeWidth="8" />
@@ -95,25 +97,23 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
             </div>
           </div>
 
-          {/* Macro Percentages */}
           <div className="flex justify-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 bg-blue-400 rounded-full" />
-              <span className="text-gray-600">碳水 {evaluation.macros.percentage.carbs}%</span>
+              <span className="text-gray-600">碳水 {percentageCarbs}%</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 bg-yellow-400 rounded-full" />
-              <span className="text-gray-600">脂肪 {evaluation.macros.percentage.fat}%</span>
+              <span className="text-gray-600">脂肪 {percentageFat}%</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 bg-blue-500 rounded-full" />
-              <span className="text-gray-600">蛋白质 {evaluation.macros.percentage.protein}%</span>
+              <span className="text-gray-600">蛋白质 {percentageProtein}%</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Macro Details */}
       <div className="mx-4 mb-6">
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
           <h3 className="font-bold text-gray-800 mb-4">营养成分</h3>
@@ -121,36 +121,36 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-gray-600">蛋白质</span>
-                <span className="font-medium">{evaluation.macros.protein}g</span>
+                <span className="font-medium">{protein}g</span>
               </div>
               <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min((evaluation.macros.protein / (total || 1)) * 100, 100)}%` }}
+                  style={{ width: `${total > 0 ? Math.min((protein / total) * 100, 100) : 0}%` }}
                 />
               </div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-gray-600">脂肪</span>
-                <span className="font-medium">{evaluation.macros.fat}g</span>
+                <span className="font-medium">{fat}g</span>
               </div>
               <div className="h-2 bg-yellow-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-yellow-500 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min((evaluation.macros.fat / (total || 1)) * 100, 100)}%` }}
+                  style={{ width: `${total > 0 ? Math.min((fat / total) * 100, 100) : 0}%` }}
                 />
               </div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-gray-600">碳水</span>
-                <span className="font-medium">{evaluation.macros.carbs}g</span>
+                <span className="font-medium">{carbs}g</span>
               </div>
               <div className="h-2 bg-green-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-green-500 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min((evaluation.macros.carbs / (total || 1)) * 100, 100)}%` }}
+                  style={{ width: `${total > 0 ? Math.min((carbs / total) * 100, 100) : 0}%` }}
                 />
               </div>
             </div>
@@ -158,12 +158,11 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
         </div>
       </div>
 
-      {/* Pros */}
       <div className="mx-4 mb-6">
         <div className="bg-green-50 rounded-3xl p-6">
           <h3 className="font-bold text-green-800 mb-3">👍 优点</h3>
           <ul className="space-y-2">
-            {evaluation.pros.map((pro, i) => (
+            {(evaluation.pros || []).map((pro, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-green-700">
                 <span className="text-green-500 mt-0.5">•</span>
                 <span>{pro}</span>
@@ -173,13 +172,12 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
         </div>
       </div>
 
-      {/* Cons */}
-      {evaluation.cons.length > 0 && (
+      {(evaluation.cons || []).length > 0 && (
         <div className="mx-4 mb-6">
           <div className="bg-red-50 rounded-3xl p-6">
-            <h3 className="font-bold text-red-800 mb-3">👎 不足</h3>
+            <h3 className="font-bold text-red-800 mb-3"> 不足</h3>
             <ul className="space-y-2">
-              {evaluation.cons.map((con, i) => (
+              {(evaluation.cons || []).map((con, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-red-700">
                   <span className="text-red-500 mt-0.5">•</span>
                   <span>{con}</span>
@@ -190,12 +188,11 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
         </div>
       )}
 
-      {/* Suggestions & Next Meal */}
       <div className="mx-4 mb-8">
         <div className="bg-amber-50 rounded-3xl p-6">
           <h3 className="font-bold text-amber-800 mb-3">💡 营养师建议</h3>
           <ul className="space-y-2">
-            {evaluation.suggestions.map((sug, i) => (
+            {(evaluation.suggestions || []).map((sug, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-amber-700">
                 <span className="text-amber-500 mt-0.5">•</span>
                 <span>{sug}</span>
@@ -203,15 +200,14 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
             ))}
           </ul>
 
-          {/* Next Meal Suggestion */}
           {nextMeal && (
             <div className="mt-4 pt-4 border-t border-amber-200">
               <p className="text-sm font-medium text-amber-800 mb-2">🍽️ 下一餐建议 ({nextMeal})</p>
               <div className="bg-white/60 rounded-xl p-3">
-                {evaluation.macros.protein < 20 && (
+                {protein < 20 && (
                   <p className="text-xs text-amber-700 mb-1">• 补充优质蛋白质：鸡胸肉、鸡蛋、豆腐</p>
                 )}
-                {evaluation.macros.carbs > 80 ? (
+                {carbs > 80 ? (
                   <p className="text-xs text-amber-700 mb-1">• 控制碳水摄入，增加蔬菜比例</p>
                 ) : (
                   <p className="text-xs text-amber-700 mb-1">• 适量主食搭配：糙米饭、燕麦</p>
@@ -223,7 +219,6 @@ export default function EvaluationPage({ evaluation, onClose }: EvaluationPagePr
         </div>
       </div>
 
-      {/* Close Button */}
       <div className="mx-4 mb-8">
         <button
           onClick={onClose}

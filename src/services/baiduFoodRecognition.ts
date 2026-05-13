@@ -1,7 +1,9 @@
 /**
- * 百度智能云食物识别服务
- * 文档: https://ai.baidu.com/ai-doc/IMAGESEEK/jhbyuw5la
+ * 通义千问视觉模型 - 食物识别服务
  */
+
+const API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+const API_KEY = import.meta.env.VITE_TONGYI_API_KEY;
 
 export interface FoodRecognitionResult {
   name: string;
@@ -9,139 +11,120 @@ export interface FoodRecognitionResult {
   probability: number;
 }
 
-export interface BaiduFoodResponse {
-  result: Array<{
-    name: string;
-    calorie: number;
-    probability: number;
-  }>;
-}
-
-// 百度智能云 API 配置
-const BAIDU_API = {
-  // API Key 和 Secret Key 需要替换为你的真实密钥
-  API_KEY: 'YOUR_BAIDU_API_KEY',
-  SECRET_KEY: 'YOUR_BAIDU_SECRET_KEY',
-  // 食物识别接口地址
-  FOOD_DETECT_URL: 'https://aip.baidubce.com/rest/2.0/image-classify/v2/dish',
-};
-
-// 获取 Access Token
-export async function getAccessToken(): Promise<string> {
-  const tokenUrl = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${BAIDU_API.API_KEY}&client_secret=${BAIDU_API.SECRET_KEY}`;
-  
-  try {
-    const response = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    const data = await response.json();
-    
-    if (data.access_token) {
-      return data.access_token;
-    } else {
-      throw new Error(data.error_description || '获取 Access Token 失败');
-    }
-  } catch (error) {
-    console.error('获取 Access Token 失败:', error);
-    throw error;
-  }
-}
-
-// 将图片转换为 Base64
-function getBase64(file: File): Promise<string> {
+/**
+ * 将图片文件压缩并转为 base64 data URL
+ * 限制最大尺寸 1024px，降低质量到 0.7
+ */
+function fileToCompressedBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
+    const img = new Image();
     const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      img.onload = () => {
+        const MAX_SIZE = 1024;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height && width > MAX_SIZE) {
+          height = Math.round((height * MAX_SIZE) / width);
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width = Math.round((width * MAX_SIZE) / height);
+          height = MAX_SIZE;
+        }
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas context error')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
   });
 }
 
-// 调用百度食物识别 API
-export async function recognizeFood(imageFile: File): Promise<FoodRecognitionResult[]> {
-  try {
-    // 获取 Access Token
-    const accessToken = await getAccessToken();
-    
-    // 将图片转换为 Base64
-    const base64Image = await getBase64(imageFile);
-    const imageBase64 = base64Image.split(',')[1]; // 去掉 data:image/jpeg;base64, 前缀
-    
-    // 调用百度食物识别 API
-    const params = new URLSearchParams({
-      image: imageBase64,
-      top_num: '5', // 返回前5个识别结果
-    });
-    
-    const response = await fetch(`${BAIDU_API.FOOD_DETECT_URL}?access_token=${accessToken}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    });
-    
-    const data = await response.json();
-    
-    if (data.result) {
-      // 处理识别结果
-      const results: FoodRecognitionResult[] = data.result.map((item: any) => ({
-        name: item.name,
-        calorie: item.calorie || 0,
-        probability: Math.round(item.probability * 100), // 转换为百分比
-      }));
-      
-      return results;
-    } else {
-      throw new Error(data.error_msg || '识别失败');
-    }
-  } catch (error) {
-    console.error('食物识别失败:', error);
-    throw error;
+async function tryVisionRecognition(base64Image: string): Promise<FoodRecognitionResult[]> {
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'qwen-vl-max',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: base64Image } },
+            {
+              type: 'text',
+              text: `你是专业的食物识别助手。请分析这张图片中的食物。
+
+请以严格的 JSON 数组格式返回，不要包含任何其他文字。格式：
+[
+  {"name": "食物名称", "calorie": 每100克千卡热量, "probability": 置信度百分比}
+]
+
+要求：只识别图片中实际存在的食物，置信度 60-100，热量单位千卡/100g，最多 5 个结果，没有食物返回 []`,
+            },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 512,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`API ${response.status}: ${errText}`);
   }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content || '';
+  console.log('AI识别返回:', content);
+
+  const jsonStr = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  const results = JSON.parse(jsonStr);
+
+  if (!Array.isArray(results) || results.length === 0) {
+    throw new Error('未识别到食物');
+  }
+
+  return results
+    .filter((r: any) => r.name && typeof r.calorie === 'number')
+    .map((r: any) => ({
+      name: r.name,
+      calorie: Math.round(r.calorie),
+      probability: Math.min(100, Math.round(r.probability || 80)),
+    }));
 }
 
-// 简单的本地食物热量映射（作为备用方案）
+export async function recognizeFood(imageFile: File): Promise<FoodRecognitionResult[]> {
+  const base64Image = await fileToCompressedBase64(imageFile);
+  return tryVisionRecognition(base64Image);
+}
+
 const LOCAL_FOOD_CALORIE_MAP: Record<string, number> = {
-  '米饭': 116,
-  '面条': 284,
-  '馒头': 223,
-  '饺子': 242,
-  '包子': 227,
-  '鸡胸肉': 133,
-  '猪肉': 143,
-  '牛肉': 125,
-  '鱼肉': 90,
-  '鸡蛋': 144,
-  '豆腐': 81,
-  '西红柿': 15,
-  '黄瓜': 15,
-  '苹果': 52,
-  '香蕉': 93,
-  '牛奶': 54,
-  '酸奶': 72,
-  '薯片': 548,
-  '巧克力': 546,
+  米饭: 116, 面条: 284, 馒头: 223, 饺子: 242, 包子: 227,
+  鸡胸肉: 133, 猪肉: 143, 牛肉: 125, 鱼肉: 90, 鸡蛋: 144,
+  豆腐: 81, 西红柿: 15, 黄瓜: 15, 苹果: 52, 香蕉: 93,
+  牛奶: 54, 酸奶: 72, 薯片: 548, 巧克力: 546, 汉堡: 295,
+  薯条: 312, 披萨: 266, 炸鸡: 300, 可乐: 42, 奶茶: 85,
 };
 
-// 根据识别到的食物名称查找本地热量数据
 export function getLocalCalorie(foodName: string): number {
-  // 尝试精确匹配
-  if (LOCAL_FOOD_CALORIE_MAP[foodName]) {
-    return LOCAL_FOOD_CALORIE_MAP[foodName];
-  }
-  
-  // 尝试模糊匹配
+  if (LOCAL_FOOD_CALORIE_MAP[foodName]) return LOCAL_FOOD_CALORIE_MAP[foodName];
   for (const [name, calorie] of Object.entries(LOCAL_FOOD_CALORIE_MAP)) {
-    if (foodName.includes(name) || name.includes(foodName)) {
-      return calorie;
-    }
+    if (foodName.includes(name) || name.includes(foodName)) return calorie;
   }
-  
-  // 默认返回估算值
-  return 150; // 默认150千卡/100g
+  return 150;
 }

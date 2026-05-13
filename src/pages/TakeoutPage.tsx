@@ -1,657 +1,854 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useCalorieStore } from '../store/calorieStore';
 import {
-  getCombosByTarget,
-  getSmartRecipes,
-  getRecipesByCategory,
-  getLowCalorieMenuItems,
-  getRecommendedRestaurants,
-  RESTAURANTS,
-  RESTAURANT_MENUS,
-  LOW_CAL_RECIPES,
-  Combo,
-  SmartRecipe,
-  LowCalRecipe,
-  Restaurant,
-  MenuItem,
-} from '../utils/takeoutRecommend';
-import { Card, Tabs, Tag, Space, Button, Modal, Descriptions, Typography, Progress, Empty } from 'antd';
+  RECIPES,
+  getRecipesByCategoryAndMeal,
+  getRecipesByTarget,
+  searchRecipes,
+  Recipe,
+} from '../utils/recipeData';
+import { generateRecipeRecommendations, AIRecipeRecommendation, UserProfile } from '../utils/aiSuggestion';
+import { Card, Tabs, Tag, Space, Button, Modal, Descriptions, Typography, Input, Empty, Spin, Divider, Calendar, Badge, Segmented, DatePicker, App } from 'antd';
+import type { BadgeProps } from 'antd';
 import {
   RobotOutlined,
-  ShopOutlined,
   FireOutlined,
-  LineChartOutlined,
   BulbOutlined,
   CloseOutlined,
   CheckOutlined,
-  EnvironmentOutlined,
   ClockCircleOutlined,
+  SearchOutlined,
   StarOutlined,
-  ThunderboltOutlined,
-  CoffeeOutlined,
+  PlusOutlined,
+  CalendarOutlined,
+  DeleteOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
+import dayjs, { Dayjs } from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
 
-const RECIPE_CATEGORIES = [
-  { key: 'all', label: '全部', icon: <LineChartOutlined /> },
-  { key: '蛋白质', label: '蛋白质', icon: <ThunderboltOutlined /> },
-  { key: '主食', label: '主食', icon: <CoffeeOutlined /> },
-  { key: '蔬菜', label: '蔬菜', icon: <BulbOutlined /> },
-  { key: '汤品', label: '汤品', icon: <FireOutlined /> },
-  { key: '早餐', label: '早餐', icon: <StarOutlined /> },
-  { key: '加餐', label: '加餐', icon: <ShopOutlined /> },
-];
+interface SavedDayPlan {
+  date: string;
+  recipes: Recipe[];
+}
 
 export default function TakeoutPage() {
-  const { userSettings, todayRecords, getTodayTotalCalories, addFoodRecord } = useCalorieStore();
+  const { message } = App.useApp();
+  const {
+    userSettings,
+    allFoodRecords,
+    getTodayTotalCalories,
+    getTodayExerciseCalories,
+    getTodayMacros,
+    addFoodRecord,
+  } = useCalorieStore();
 
-  const getTargetCalorie = () => {
-    const weight = userSettings.weight || 55;
-    const activityLevel = userSettings.activityLevel || 1.2;
-    const bmr = weight * 22;
-    const tdee = bmr * activityLevel;
-    if (userSettings.target === 'fat') return Math.round(tdee - 400);
-    if (userSettings.target === 'muscle') return Math.round(tdee + 300);
-    return Math.round(tdee);
+  const [selectedCategory, setSelectedCategory] = useState<'chinese' | 'light'>('chinese');
+  const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner'>('lunch');
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecipeRecommendation | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [customMealPlan, setCustomMealPlan] = useState<Recipe[]>([]);
+  const [selectedPlanDate, setSelectedPlanDate] = useState<string>(dayjs().format('YYYY-MM-DD'));
+  const [showMealPlan, setShowMealPlan] = useState(false);
+  const [showDateSelector, setShowDateSelector] = useState(false);
+  const [pendingAddRecipe, setPendingAddRecipe] = useState<Recipe | null>(null);
+  const [selectedDateForAdd, setSelectedDateForAdd] = useState<Dayjs>(dayjs());
+  const [savedPlans, setSavedPlans] = useState<SavedDayPlan[]>(() => {
+    try {
+      const data = localStorage.getItem('saved_meal_plans');
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
+  const [viewMode, setViewMode] = useState<'plan' | 'calendar'>('plan');
+
+  // Refs to avoid stale closure in Modal onOk
+  const pendingAddRecipeRef = useRef<Recipe | null>(null);
+  const selectedDateForAddRef = useRef<Dayjs>(dayjs());
+  const savedPlansRef = useRef(savedPlans);
+  const selectedPlanDateRef = useRef(selectedPlanDate);
+  const customMealPlanRef = useRef(customMealPlan);
+  pendingAddRecipeRef.current = pendingAddRecipe;
+  selectedDateForAddRef.current = selectedDateForAdd;
+  savedPlansRef.current = savedPlans;
+  selectedPlanDateRef.current = selectedPlanDate;
+  customMealPlanRef.current = customMealPlan;
+
+  // 清理超过7天的旧餐单
+  useEffect(() => {
+    const sevenDaysAgo = dayjs().subtract(7, 'day').format('YYYY-MM-DD');
+    setSavedPlans((prev) => {
+      const filtered = prev.filter((p) => p.date >= sevenDaysAgo);
+      if (filtered.length !== prev.length) {
+        localStorage.setItem('saved_meal_plans', JSON.stringify(filtered));
+      }
+      return filtered;
+    });
+  }, []);
+
+  // 保存餐单到 localStorage
+  useEffect(() => {
+    localStorage.setItem('saved_meal_plans', JSON.stringify(savedPlans));
+  }, [savedPlans]);
+
+  const todayRecords = allFoodRecords.filter(
+    (r) => r.date === new Date().toISOString().split('T')[0]
+  );
+  const totalCal = getTodayTotalCalories();
+  const exerciseCal = getTodayExerciseCalories();
+  const todayMacros = getTodayMacros();
+
+  const userTarget: 'fat' | 'muscle' | 'keep' = userSettings.target || 'fat';
+  const weight = userSettings.weight || 55;
+  const activityLevel = userSettings.activityLevel || 1.2;
+  const bmr = weight * 22;
+  const tdee = bmr * activityLevel;
+  let targetCal = Math.round(tdee);
+  if (userTarget === 'fat') targetCal = Math.round(tdee - 400);
+  else if (userTarget === 'muscle') targetCal = Math.round(tdee + 300);
+  const remaining = Math.max(0, targetCal - totalCal + exerciseCal);
+
+  const filteredRecipes = useMemo(() => {
+    if (searchTerm.trim()) {
+      return searchRecipes(searchTerm);
+    }
+    return getRecipesByCategoryAndMeal(selectedCategory, selectedMealType);
+  }, [selectedCategory, selectedMealType, searchTerm]);
+
+  const targetRecipes = useMemo(() => {
+    return getRecipesByTarget(userTarget);
+  }, [userTarget]);
+
+  // Load saved plan for selected date
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  useEffect(() => {
+    const selectedPlan = savedPlans.find((p) => p.date === selectedPlanDate);
+    if (selectedPlan) {
+      setCustomMealPlan(selectedPlan.recipes);
+    } else {
+      setCustomMealPlan([]);
+    }
+  }, [showMealPlan, selectedPlanDate]);
+
+  // AI推荐 - 只在有新记录时更新
+  const hasEvaluatedRef = useRef(false);
+  const prevRecordCountRef = useRef(todayRecords.length);
+
+  useEffect(() => {
+    if (todayRecords.length > prevRecordCountRef.current) {
+      hasEvaluatedRef.current = false;
+      prevRecordCountRef.current = todayRecords.length;
+    }
+  }, [todayRecords.length]);
+
+  const loadAiRecommendations = async () => {
+    if (hasEvaluatedRef.current) return;
+    if (todayRecords.length === 0) return;
+
+    setAiLoading(true);
+    try {
+      const profile: UserProfile = {
+        target: userTarget,
+        targetCal,
+        currentCal: totalCal,
+        todayExerciseCal: exerciseCal,
+        weight,
+        height: userSettings.height,
+        age: userSettings.age,
+        gender: userSettings.gender,
+      };
+
+      const result = await generateRecipeRecommendations(todayRecords, profile, RECIPES);
+      setAiRecommendations(result);
+      hasEvaluatedRef.current = true;
+    } catch (error) {
+      console.error('AI推荐失败:', error);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
-  const targetCal = getTargetCalorie();
-  const totalCal = getTodayTotalCalories();
-  const remaining = targetCal - totalCal;
-  const userTarget: 'fat' | 'muscle' | 'keep' = userSettings.target || 'fat';
+  useEffect(() => {
+    loadAiRecommendations();
+  }, [todayRecords.length]);
 
-  const [selectedRecipe, setSelectedRecipe] = useState<SmartRecipe | LowCalRecipe | MenuItem | null>(null);
-  const [activeTab, setActiveTab] = useState('smart');
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [selectedCombo, setSelectedCombo] = useState<Combo | null>(null);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
-  const [showComboDetail, setShowComboDetail] = useState(false);
+  const getTargetLabel = () => {
+    const labels: Record<string, string> = { fat: '减脂', keep: '维持', muscle: '增肌' };
+    return labels[userTarget] || '推荐';
+  };
 
-  const muscleCombos = getCombosByTarget('muscle');
-  const fatCombos = getCombosByTarget('fat');
-  const smartRecipes = getSmartRecipes(remaining, userTarget);
-  const filteredRecipes = activeCategory === 'all' ? smartRecipes : getRecipesByCategory(activeCategory, userTarget);
-  const lowCalItems = LOW_CAL_RECIPES;
-  const restaurants = getRecommendedRestaurants(remaining, 'distance');
+  const handleAddToMealPlan = (recipe: Recipe) => {
+    setPendingAddRecipe(recipe);
+    setShowDateSelector(true);
+  };
 
-  const handleAddRecipe = (recipe: SmartRecipe | LowCalRecipe | MenuItem, extraCal?: number) => {
+  const handleConfirmAddToMealPlan = () => {
+    if (!pendingAddRecipeRef.current || !selectedDateForAddRef.current) {
+      console.warn('Missing recipe or date');
+      return;
+    }
+    
+    const recipe = pendingAddRecipeRef.current;
+    const dateStr = selectedDateForAddRef.current.format('YYYY-MM-DD');
+    const dayPlan = savedPlansRef.current.find((p) => p.date === dateStr);
+    const existingRecipes = dayPlan ? dayPlan.recipes : [];
+    
+    if (existingRecipes.find((r) => r.id === recipe.id)) {
+      message.info('该菜谱已在所选日期的餐单中');
+      return;
+    }
+
+    const newRecipes = [...existingRecipes, recipe];
+    setSavedPlans((prev) => {
+      const filtered = prev.filter((p) => p.date !== dateStr);
+      return [...filtered, { date: dateStr, recipes: newRecipes }];
+    });
+    
+    if (dateStr === selectedPlanDateRef.current) {
+      setCustomMealPlan(newRecipes);
+    }
+    
+    message.success(`已添加到 ${dateStr} 的餐单`);
+    setShowDateSelector(false);
+    setPendingAddRecipe(null);
+    setSelectedDateForAdd(dayjs());
+  };
+
+  const handleRemoveFromMealPlan = (recipeId: string) => {
+    const dayPlan = savedPlans.find((p) => p.date === selectedPlanDate);
+    if (!dayPlan) return;
+    
+    const newRecipes = dayPlan.recipes.filter((r) => r.id !== recipeId);
+    handleSaveDayPlan(selectedPlanDate, newRecipes);
+    setCustomMealPlan(newRecipes);
+  };
+
+  const handleSaveMealPlan = () => {
+    handleSaveDayPlan(selectedPlanDate, customMealPlan);
+    message.success(`已保存 ${selectedPlanDate} 的餐单`);
+  };
+
+  const handleSaveDayPlan = (date: string, recipes: Recipe[]) => {
+    setSavedPlans((prev) => {
+      const filtered = prev.filter((p) => p.date !== date);
+      return [...filtered, { date, recipes }];
+    });
+  };
+
+  const handleDeleteDayPlan = (date: string) => {
+    setSavedPlans((prev) => prev.filter((p) => p.date !== date));
+  };
+
+  const handleAddToRecords = (recipe: Recipe) => {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const calorie = extraCal !== undefined ? extraCal : recipe.calorie;
+    const mealTypeMap: Record<string, 'breakfast' | 'lunch' | 'dinner'> = {
+      breakfast: 'breakfast',
+      lunch: 'lunch',
+      dinner: 'dinner',
+    };
 
     addFoodRecord({
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
+      date: now.toISOString().split('T')[0],
       name: recipe.name,
-      calorie,
+      calorie: recipe.calorie,
       time: timeStr,
-      mealType: 'lunch',
-      macro: recipe.protein !== undefined
-        ? { protein: recipe.protein, fat: recipe.fat || 0, carbs: recipe.carbs || 0 }
-        : undefined,
+      mealType: mealTypeMap[recipe.mealType] || 'lunch',
+      macro: {
+        protein: recipe.protein,
+        fat: recipe.fat,
+        carbs: recipe.carbs,
+      },
       timestamp: now.getTime(),
     });
-    setSelectedRecipe(null);
-    setShowComboDetail(false);
   };
 
-  const level = remaining < 200 ? 'snack' : remaining < 400 ? 'light' : remaining < 600 ? 'regular' : 'heavy';
-  const levelLabels: Record<string, { label: string; color: string }> = {
-    snack: { label: '加餐小食', color: '#FAAD14' },
-    light: { label: '轻食简餐', color: '#52C41A' },
-    regular: { label: '营养正餐', color: '#1677FF' },
-    heavy: { label: '丰盛大餐', color: '#FF4D4F' },
+  const getListData = (value: Dayjs) => {
+    const dateStr = value.format('YYYY-MM-DD');
+    const plan = savedPlans.find((p) => p.date === dateStr);
+    if (plan && plan.recipes.length > 0) {
+      const totalCal = plan.recipes.reduce((sum, r) => sum + r.calorie, 0);
+      return [{ type: 'success', content: `${plan.recipes.length}道菜 ${totalCal}千卡` }];
+    }
+    return [];
   };
 
-  const tabList = [
-    { key: 'smart', label: '智能推荐', icon: <RobotOutlined /> },
-    { key: 'combos', label: '推荐套餐', icon: <FireOutlined /> },
-    { key: 'restaurants', label: '附近餐厅', icon: <ShopOutlined /> },
-    { key: 'lowcal', label: '低卡精选', icon: <BulbOutlined /> },
-  ];
-
-  const caloriePercent = Math.min(Math.round((totalCal / targetCal) * 100), 100);
-
-  const renderSmartRecipes = () => (
-    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={5} style={{ margin: 0 }}>智能推荐菜谱</Title>
-        <Text style={{ color: '#666', fontSize: '12px' }}>{filteredRecipes.length} 道</Text>
-      </div>
-
-      <Space wrap size={8}>
-        {RECIPE_CATEGORIES.map((cat) => (
-          <Button
-            key={cat.key}
-            type={activeCategory === cat.key ? 'primary' : 'default'}
-            size="small"
-            icon={cat.icon}
-            onClick={() => setActiveCategory(cat.key)}
-          >
-            {cat.label}
-          </Button>
+  const dateCellRender = (value: Dayjs) => {
+    const listData = getListData(value);
+    return (
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        {listData.map((item) => (
+          <li key={item.content}>
+            <Badge status={item.type as BadgeProps['status']} text={item.content} style={{ fontSize: '10px' }} />
+          </li>
         ))}
-      </Space>
-
-      {filteredRecipes.length > 0 ? (
-        filteredRecipes.map((recipe) => (
-          <Card
-            key={recipe.id}
-            hoverable
-            styles={{ body: { padding: '16px' } }}
-            onClick={() => setSelectedRecipe(recipe)}
-            style={{ borderRadius: '8px' }}
-          >
-            <Space align="start" style={{ width: '100%' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '8px',
-                background: '#F0F5FF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                flexShrink: 0,
-              }}>
-                {recipe.emoji}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <Text strong style={{ fontSize: '14px' }}>{recipe.name}</Text>
-                  <Text type="warning" strong>{recipe.calorie}千卡</Text>
-                </div>
-                <Text style={{ color: '#666', fontSize: '12px', display: 'block', marginBottom: '8px' }}>
-                  {recipe.description}
-                </Text>
-                <Space size={4} wrap>
-                  <Tag color="blue">蛋{recipe.protein}g</Tag>
-                  <Tag color="gold">脂{recipe.fat}g</Tag>
-                  <Tag color="green">碳{recipe.carbs}g</Tag>
-                </Space>
-              </div>
-            </Space>
-          </Card>
-        ))
-      ) : (
-        <Card style={{ borderRadius: '8px', textAlign: 'center', padding: '32px 0' }}>
-          <Empty description="当前热量额度暂无推荐" />
-          <Text style={{ color: '#666', fontSize: '12px' }}>建议适当运动消耗多余热量</Text>
-        </Card>
-      )}
-    </Space>
-  );
-
-  const renderCombos = () => (
-    <Space orientation="vertical" size={24} style={{ width: '100%' }}>
-      {muscleCombos.length > 0 && (
-        <div>
-          <Title level={5} style={{ marginBottom: '16px' }}>
-            <ThunderboltOutlined style={{ marginRight: '8px' }} />增肌套餐
-          </Title>
-          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-            {muscleCombos.map((combo) => (
-              <Card
-                key={combo.id}
-                hoverable
-                styles={{ body: { padding: '16px' } }}
-                onClick={() => { setSelectedCombo(combo); setShowComboDetail(true); }}
-                style={{ borderRadius: '8px', background: '#FFF7E6', borderColor: '#FFE7BA' }}
-              >
-                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Space>
-                      <span style={{ fontSize: '24px' }}>{combo.emoji}</span>
-                      <Text strong style={{ color: '#D46B08' }}>{combo.name}</Text>
-                    </Space>
-                    <Tag color="orange">增肌</Tag>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Title level={4} style={{ margin: 0, color: '#FA8C16' }}>{combo.totalCalorie}千卡</Title>
-                    <Text style={{ color: '#666' }}>¥{combo.totalPrice}</Text>
-                  </div>
-                  <Space size={4} wrap>
-                    {combo.tags.map((tag) => (
-                      <Tag key={tag} color="orange" style={{ fontSize: '10px' }}>{tag}</Tag>
-                    ))}
-                  </Space>
-                </Space>
-              </Card>
-            ))}
-          </Space>
-        </div>
-      )}
-
-      {fatCombos.length > 0 && (
-        <div>
-          <Title level={5} style={{ marginBottom: '16px' }}>
-            <BulbOutlined style={{ marginRight: '8px' }} />减脂套餐
-          </Title>
-          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-            {fatCombos.map((combo) => (
-              <Card
-                key={combo.id}
-                hoverable
-                styles={{ body: { padding: '16px' } }}
-                onClick={() => { setSelectedCombo(combo); setShowComboDetail(true); }}
-                style={{ borderRadius: '8px', background: '#F6FFED', borderColor: '#B7EB8F' }}
-              >
-                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Space>
-                      <span style={{ fontSize: '24px' }}>{combo.emoji}</span>
-                      <Text strong style={{ color: '#389E0D' }}>{combo.name}</Text>
-                    </Space>
-                    <Tag color="green">减脂</Tag>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Title level={4} style={{ margin: 0, color: '#52C41A' }}>{combo.totalCalorie}千卡</Title>
-                    <Text style={{ color: '#666' }}>¥{combo.totalPrice}</Text>
-                  </div>
-                  <Space size={4} wrap>
-                    {combo.tags.map((tag) => (
-                      <Tag key={tag} color="green" style={{ fontSize: '10px' }}>{tag}</Tag>
-                    ))}
-                  </Space>
-                </Space>
-              </Card>
-            ))}
-          </Space>
-        </div>
-      )}
-    </Space>
-  );
-
-  const renderRestaurants = () => (
-    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={5} style={{ margin: 0 }}>附近餐厅</Title>
-        <Text style={{ color: '#666', fontSize: '12px' }}>按距离排序</Text>
-      </div>
-
-      {restaurants.map((restaurant) => (
-        <Card
-          key={restaurant.id}
-          hoverable
-          styles={{ body: { padding: '16px' } }}
-          onClick={() => setSelectedRestaurant(restaurant)}
-          style={{ borderRadius: '8px' }}
-        >
-          <Space align="start" style={{ width: '100%' }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '12px',
-              background: '#FFF7E6',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '32px',
-              flexShrink: 0,
-            }}>
-              {restaurant.emoji}
-            </div>
-            <div style={{ flex: 1 }}>
-              <Text strong style={{ fontSize: '14px', display: 'block', marginBottom: '4px' }}>{restaurant.name}</Text>
-              <Text style={{ color: '#666', fontSize: '12px', display: 'block', marginBottom: '8px' }}>
-                <EnvironmentOutlined style={{ marginRight: '4px' }} />{restaurant.address}
-              </Text>
-              <Space size={8}>
-                <Tag color="orange"><StarOutlined /> {restaurant.rating}</Tag>
-                <Tag color="blue">{restaurant.distance}km</Tag>
-                <Tag color="green"><ClockCircleOutlined /> {restaurant.deliveryTime}</Tag>
-              </Space>
-            </div>
-          </Space>
-          <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #F0F0F0' }}>
-            <Space size={4} wrap>
-              {restaurant.tags.map((tag) => (
-                <Tag key={tag} style={{ fontSize: '10px' }}>{tag}</Tag>
-              ))}
-            </Space>
-          </div>
-        </Card>
-      ))}
-    </Space>
-  );
-
-  const renderLowCal = () => (
-    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={5} style={{ margin: 0 }}>低卡精选</Title>
-        <Text style={{ color: '#666', fontSize: '12px' }}>{lowCalItems.length} 道</Text>
-      </div>
-
-      {lowCalItems.map((item) => (
-        <Card
-          key={item.id}
-          hoverable
-          styles={{ body: { padding: '16px' } }}
-          onClick={() => setSelectedRecipe(item)}
-          style={{ borderRadius: '8px' }}
-        >
-          <Space align="start" style={{ width: '100%' }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '8px',
-              background: '#F6FFED',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px',
-              flexShrink: 0,
-            }}>
-              {item.emoji}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <Text strong style={{ fontSize: '14px' }}>{item.name}</Text>
-                <Text type="success" strong>{item.calorie}千卡</Text>
-              </div>
-              <Tag color="green" style={{ marginBottom: '8px' }}>{item.category}</Tag>
-              <Space size={4} wrap>
-                <Tag color="blue">蛋{item.protein}g</Tag>
-                <Tag color="gold">脂{item.fat}g</Tag>
-                <Tag color="green">碳{item.carbs}g</Tag>
-              </Space>
-            </div>
-          </Space>
-        </Card>
-      ))}
-    </Space>
-  );
-
-  const tabContentMap: Record<string, () => JSX.Element> = {
-    smart: renderSmartRecipes,
-    combos: renderCombos,
-    restaurants: renderRestaurants,
-    lowcal: renderLowCal,
+      </ul>
+    );
   };
+
+  const renderCalendarView = () => {
+    const selectedDateStr = selectedDate.format('YYYY-MM-DD');
+    const selectedPlan = savedPlans.find((p) => p.date === selectedDateStr);
+
+    return (
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <Title level={4} style={{ margin: 0, color: '#333' }}>餐单日历</Title>
+          <Button type="text" icon={<CloseOutlined />} onClick={() => setShowMealPlan(false)} />
+        </div>
+
+        <Segmented
+          options={[
+            { label: '月视图', value: 'month' },
+            { label: '周视图', value: 'week' },
+          ]}
+          defaultValue="month"
+          style={{ marginBottom: '16px' }}
+          onChange={(val) => {
+            if (val === 'week') {
+              setSelectedDate(dayjs().startOf('week'));
+            }
+          }}
+        />
+
+        <Calendar
+          value={selectedDate}
+          onChange={setSelectedDate}
+          cellRender={dateCellRender}
+          fullscreen={false}
+        />
+
+        {selectedPlan && selectedPlan.recipes.length > 0 ? (
+          <div style={{ marginTop: '16px' }}>
+            <Divider>{selectedDate.format('YYYY-MM-DD')} 的餐单</Divider>
+            <Card style={{ borderRadius: '8px', marginBottom: '12px', background: '#FFF7E6' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+                <div>
+                  <Text strong style={{ fontSize: '18px', color: '#FA8C16' }}>
+                    {selectedPlan.recipes.reduce((s, r) => s + r.calorie, 0)}
+                  </Text>
+                  <Text style={{ display: 'block', fontSize: '11px', color: '#666' }}>千卡</Text>
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: '18px', color: '#1677FF' }}>
+                    {selectedPlan.recipes.reduce((s, r) => s + r.protein, 0)}g
+                  </Text>
+                  <Text style={{ display: 'block', fontSize: '11px', color: '#666' }}>蛋白质</Text>
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: '18px', color: '#FAAD14' }}>
+                    {selectedPlan.recipes.reduce((s, r) => s + r.fat, 0)}g
+                  </Text>
+                  <Text style={{ display: 'block', fontSize: '11px', color: '#666' }}>脂肪</Text>
+                </div>
+              </div>
+            </Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {selectedPlan.recipes.map((recipe) => (
+                <div key={recipe.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid #f0f0f0', borderRadius: '8px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Text strong>{recipe.name}</Text>
+                      <Tag style={{ fontSize: '10px' }}>{recipe.category === 'chinese' ? '中餐' : '轻食'}</Tag>
+                      <Tag style={{ fontSize: '10px' }}>
+                        {recipe.mealType === 'breakfast' ? '早餐' : recipe.mealType === 'lunch' ? '午餐' : '晚餐'}
+                      </Tag>
+                    </div>
+                    <Text style={{ fontSize: '12px', color: '#666' }}>{recipe.calorie}千卡 | 蛋白质{recipe.protein}g 脂肪{recipe.fat}g 碳水{recipe.carbs}g</Text>
+                  </div>
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => handleAddToRecords(recipe)}
+                  >
+                    添加到记录
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleDeleteDayPlan(selectedDateStr)}
+                style={{ flex: 1 }}
+              >
+                删除该日餐单
+              </Button>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setSelectedPlanDate(selectedDateStr);
+                  setViewMode('plan');
+                }}
+                style={{ flex: 1 }}
+              >
+                编辑餐单
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ marginTop: '16px', textAlign: 'center', padding: '24px 0' }}>
+            <Empty description={`${selectedDate.format('YYYY-MM-DD')} 暂无餐单`} />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderCustomMealPlan = () => {
+    const totalPlanCal = customMealPlan.reduce((sum, r) => sum + r.calorie, 0);
+    const totalPlanProtein = customMealPlan.reduce((sum, r) => sum + r.protein, 0);
+    const totalPlanFat = customMealPlan.reduce((sum, r) => sum + r.fat, 0);
+    const totalPlanCarbs = customMealPlan.reduce((sum, r) => sum + r.carbs, 0);
+
+    return (
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <Title level={4} style={{ margin: 0, color: '#333' }}>定制餐单</Title>
+          <Space>
+            <Button
+              type="default"
+              size="small"
+              icon={<CalendarOutlined />}
+              onClick={() => setViewMode('calendar')}
+            >
+              查看日历
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              icon={<CheckOutlined />}
+              onClick={handleSaveMealPlan}
+              disabled={customMealPlan.length === 0}
+            >
+              保存餐单
+            </Button>
+            <Button
+              type="text"
+              size="small"
+              icon={<CloseOutlined />}
+              onClick={() => setShowMealPlan(false)}
+            />
+          </Space>
+        </div>
+
+        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Text style={{ color: '#666' }}>选择日期：</Text>
+          <DatePicker
+            value={dayjs(selectedPlanDate)}
+            onChange={(date) => {
+              if (date) {
+                const dateStr = date.format('YYYY-MM-DD');
+                setSelectedPlanDate(dateStr);
+              }
+            }}
+            format="YYYY-MM-DD"
+            disabledDate={(current) => {
+              return current && (current.isBefore(dayjs().subtract(7, 'day'), 'day') || current.isAfter(dayjs().add(7, 'day'), 'day'));
+            }}
+          />
+        </div>
+
+        {customMealPlan.length === 0 ? (
+          <Card style={{ borderRadius: '8px', textAlign: 'center', padding: '48px 0' }}>
+            <Empty description={`${selectedPlanDate} 餐单为空`} />
+            <Text style={{ color: '#999', fontSize: '12px' }}>浏览菜谱，点击"加入餐单"开始定制</Text>
+          </Card>
+        ) : (
+          <>
+            <Card style={{ borderRadius: '8px', marginBottom: '16px', background: '#FFF7E6' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+                <div>
+                  <Text strong style={{ fontSize: '20px', color: '#FA8C16' }}>{totalPlanCal}</Text>
+                  <Text style={{ display: 'block', fontSize: '11px', color: '#666' }}>总热量(千卡)</Text>
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: '20px', color: '#1677FF' }}>{totalPlanProtein}g</Text>
+                  <Text style={{ display: 'block', fontSize: '11px', color: '#666' }}>蛋白质</Text>
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: '20px', color: '#FAAD14' }}>{totalPlanFat}g</Text>
+                  <Text style={{ display: 'block', fontSize: '11px', color: '#666' }}>脂肪</Text>
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: '20px', color: '#52C41A' }}>{totalPlanCarbs}g</Text>
+                  <Text style={{ display: 'block', fontSize: '11px', color: '#666' }}>碳水</Text>
+                </div>
+              </div>
+            </Card>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {customMealPlan.map((recipe) => (
+                <div key={recipe.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid #f0f0f0', borderRadius: '8px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Text strong>{recipe.name}</Text>
+                      <Tag style={{ fontSize: '10px' }}>
+                        {recipe.category === 'chinese' ? '中餐' : '轻食'}
+                      </Tag>
+                      <Tag style={{ fontSize: '10px' }}>
+                        {recipe.mealType === 'breakfast' ? '早餐' : recipe.mealType === 'lunch' ? '午餐' : '晚餐'}
+                      </Tag>
+                    </div>
+                    <Text style={{ fontSize: '12px', color: '#666' }}>{recipe.calorie}千卡 | 蛋白质{recipe.protein}g 脂肪{recipe.fat}g 碳水{recipe.carbs}g</Text>
+                  </div>
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleRemoveFromMealPlan(recipe.id)}
+                  >
+                    移除
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderRecipeCard = (recipe: Recipe, showAddButton: boolean = true) => {
+    const dayPlan = savedPlans.find((p) => p.date === selectedPlanDate);
+    const planRecipes = dayPlan ? dayPlan.recipes : [];
+    const isInPlan = planRecipes.some((r) => r.id === recipe.id);
+
+    return (
+      <Card
+        key={recipe.id}
+        hoverable
+        style={{ borderRadius: '8px' }}
+        onClick={() => setSelectedRecipe(recipe)}
+      >
+        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+            <Text strong style={{ fontSize: '15px' }}>{recipe.name}</Text>
+            <Tag color={recipe.category === 'chinese' ? 'orange' : 'blue'} style={{ fontSize: '10px' }}>
+              {recipe.category === 'chinese' ? '中餐' : '轻食'}
+            </Tag>
+          </Space>
+          <Text style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>
+            {recipe.description}
+          </Text>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Space size={8}>
+              <Tag style={{ fontSize: '10px' }}>
+                {recipe.mealType === 'breakfast' ? '早餐' : recipe.mealType === 'lunch' ? '午餐' : '晚餐'}
+              </Tag>
+              <Tag style={{ fontSize: '10px' }}>
+                <ClockCircleOutlined /> {recipe.cookTime}分钟
+              </Tag>
+              <Tag style={{ fontSize: '10px' }}>
+                <FireOutlined /> {recipe.calorie}千卡
+              </Tag>
+            </Space>
+            {showAddButton && (
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToMealPlan(recipe);
+                }}
+                style={{ background: '#FA8C16', borderColor: '#FA8C16' }}
+              >
+                加入餐单
+              </Button>
+            )}
+          </div>
+        </Space>
+      </Card>
+    );
+  };
+
+  if (showMealPlan) {
+    if (viewMode === 'calendar') {
+      return renderCalendarView();
+    }
+    return renderCustomMealPlan();
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5F7FA' }}>
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0958D9 0%, #1677FF 100%)',
-        padding: '48px 20px 32px',
-        borderBottomLeftRadius: '16px',
-        borderBottomRightRadius: '16px',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <Title level={4} style={{ margin: 0, color: '#FFF' }}>推荐菜谱</Title>
-          <Tag color="white" style={{ fontSize: '12px', padding: '4px 12px' }}>
-            {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })}
-          </Tag>
+      <div style={{ padding: '16px 20px', background: '#FFF', borderBottom: '1px solid #F0F0F0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Title level={4} style={{ margin: 0, color: '#333' }}>推荐菜谱</Title>
+          <Space>
+            <Button
+              type="default"
+              size="small"
+              icon={<CalendarOutlined />}
+              onClick={() => { setViewMode('calendar'); setShowMealPlan(true); }}
+            >
+              餐单日历
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              icon={<StarOutlined />}
+              onClick={() => { setViewMode('plan'); setShowMealPlan(true); }}
+              style={{ background: '#FA8C16', borderColor: '#FA8C16' }}
+            >
+              定制餐单
+            </Button>
+          </Space>
         </div>
 
-        <Card style={{ borderRadius: '8px', background: 'rgba(255,255,255,0.2)', border: 'none', backdropFilter: 'blur(10px)' }}>
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <div>
-              <Text style={{ color: '#FFF', fontSize: '12px', display: 'block', marginBottom: '4px' }}>
-                今日剩余可摄入
+        <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+          <Tag color="orange" style={{ fontSize: '12px' }}>
+            <FireOutlined /> 目标 {targetCal} 千卡
+          </Tag>
+          <Tag color="blue" style={{ fontSize: '12px' }}>
+            已摄入 {totalCal} 千卡
+          </Tag>
+          <Tag color="green" style={{ fontSize: '12px' }}>
+            剩余 {remaining} 千卡
+          </Tag>
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <Tabs
+            activeKey={selectedCategory}
+            onChange={(key) => setSelectedCategory(key as 'chinese' | 'light')}
+            size="small"
+            items={[
+              { key: 'chinese', label: '中餐' },
+              { key: 'light', label: '轻食' },
+            ]}
+          />
+          <Tabs
+            activeKey={selectedMealType}
+            onChange={(key) => setSelectedMealType(key as 'breakfast' | 'lunch' | 'dinner')}
+            size="small"
+            type="card"
+            items={[
+              { key: 'breakfast', label: '早餐' },
+              { key: 'lunch', label: '午餐' },
+              { key: 'dinner', label: '晚餐' },
+            ]}
+          />
+        </div>
+
+        <Input
+          placeholder="搜索菜谱..."
+          prefix={<SearchOutlined style={{ color: '#CCC' }} />}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          allowClear
+          style={{
+            marginBottom: '16px',
+            borderRadius: '24px',
+            background: '#FFF',
+            border: '1px solid #E0E0E0',
+          }}
+        />
+
+        {aiRecommendations && aiRecommendations.recipes.length > 0 && (
+          <Card
+            style={{
+              borderRadius: '8px',
+              background: '#F6FFED',
+              border: '1px solid #B7EB8F',
+              marginBottom: '16px',
+            }}
+          >
+            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+              <Space>
+                <RobotOutlined style={{ fontSize: '18px', color: '#52C41A' }} />
+                <Text strong>AI 智能推荐</Text>
+              </Space>
+              <Text style={{ fontSize: '13px', color: '#389E0D', lineHeight: '1.6' }}>
+                {aiRecommendations.analysis}
               </Text>
-              <Title level={2} style={{ margin: 0, color: '#FFF' }}>
-                {remaining} <span style={{ fontSize: '16px', fontWeight: 'normal' }}>千卡</span>
-              </Title>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <Progress
-                type="circle"
-                percent={caloriePercent}
-                size={64}
-                strokeColor="#52C41A"
-                format={() => <Text style={{ fontSize: '14px', color: '#FFF' }}>{caloriePercent}%</Text>}
-              />
-              <Text style={{ color: '#FFF', fontSize: '12px', display: 'block', marginTop: '4px' }}>
-                {levelLabels[level].label}
-              </Text>
-            </div>
+              <Space size={8} wrap>
+                {aiRecommendations.recipes.slice(0, 3).map((recipe) => (
+                  <Tag
+                    key={recipe.id}
+                    color="green"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      const found = RECIPES.find((r) => r.id === recipe.id);
+                      if (found) setSelectedRecipe(found);
+                    }}
+                  >
+                    {recipe.name}
+                  </Tag>
+                ))}
+              </Space>
+            </Space>
+          </Card>
+        )}
+
+        {aiLoading && (
+          <Card style={{ borderRadius: '8px', marginBottom: '16px', textAlign: 'center' }}>
+            <Spin size="small" />
+            <Text style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>AI 分析中...</Text>
+          </Card>
+        )}
+
+        {filteredRecipes.length === 0 ? (
+          <Card style={{ borderRadius: '8px', textAlign: 'center', padding: '48px 0' }}>
+            <Empty description="暂无相关菜谱" />
+          </Card>
+        ) : (
+          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+            {filteredRecipes.map((recipe) => renderRecipeCard(recipe, true))}
           </Space>
-        </Card>
+        )}
+
+        {!searchTerm && targetRecipes.length > 0 && (
+          <>
+            <Divider>
+              <Space>
+                <BulbOutlined style={{ color: '#FAAD14' }} />
+                <Text style={{ color: '#666', fontSize: '12px' }}>适合你的{getTargetLabel()}菜谱</Text>
+              </Space>
+            </Divider>
+            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+              {targetRecipes.slice(0, 3).map((recipe) => renderRecipeCard(recipe, true))}
+            </Space>
+          </>
+        )}
       </div>
 
-      {/* Tab Navigation */}
-      <div style={{ padding: '12px 20px', position: 'sticky', top: 0, background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(10px)', zIndex: 10, borderBottom: '1px solid #F0F0F0' }}>
-        <Space wrap size={8}>
-          {tabList.map((tab) => (
-            <Button
-              key={tab.key}
-              type={activeTab === tab.key ? 'primary' : 'default'}
-              size="small"
-              icon={tab.icon}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </Button>
-          ))}
-        </Space>
-      </div>
-
-      {/* Content */}
-      <div style={{ padding: '16px 20px 32px' }}>
-        {tabContentMap[activeTab]?.()}
-      </div>
-
-      {/* Recipe Detail Modal */}
       <Modal
-        open={!!selectedRecipe && !showComboDetail}
+        open={!!selectedRecipe}
         onCancel={() => setSelectedRecipe(null)}
         footer={null}
         closeIcon={<CloseOutlined />}
-        styles={{ body: { padding: '16px' } }}
+        styles={{ body: { padding: '0' } }}
       >
         {selectedRecipe && (
-          <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-            <Title level={4} style={{ margin: 0 }}>{selectedRecipe.name}</Title>
-
-            <Card style={{ borderRadius: '8px', background: '#F6FFED', border: 'none' }}>
-              <Title level={3} style={{ margin: 0, color: '#52C41A' }}>
-                {selectedRecipe.calorie} <span style={{ fontSize: '16px', fontWeight: 'normal' }}>千卡</span>
-              </Title>
-              {'description' in selectedRecipe && (
-                <Text style={{ color: '#666', fontSize: '12px' }}>{selectedRecipe.description}</Text>
-              )}
-              {'category' in selectedRecipe && typeof selectedRecipe.category === 'string' && (
-                <Tag color="green" style={{ marginTop: '8px' }}>{selectedRecipe.category}</Tag>
-              )}
-            </Card>
-
-            {selectedRecipe.protein !== undefined && (
-              <div>
-                <Text strong style={{ display: 'block', marginBottom: '8px' }}>营养成分</Text>
-                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <Card style={{ flex: 1, borderRadius: '8px', background: '#F0F5FF', textAlign: 'center', border: 'none' }}>
-                      <Title level={4} style={{ margin: 0, color: '#1677FF' }}>{selectedRecipe.protein}g</Title>
-                      <Text style={{ color: '#666', fontSize: '12px' }}>蛋白质</Text>
-                    </Card>
-                    <Card style={{ flex: 1, borderRadius: '8px', background: '#FFFBE6', textAlign: 'center', border: 'none' }}>
-                      <Title level={4} style={{ margin: 0, color: '#FAAD14' }}>{selectedRecipe.fat || 0}g</Title>
-                      <Text style={{ color: '#666', fontSize: '12px' }}>脂肪</Text>
-                    </Card>
-                    <Card style={{ flex: 1, borderRadius: '8px', background: '#F6FFED', textAlign: 'center', border: 'none' }}>
-                      <Title level={4} style={{ margin: 0, color: '#52C41A' }}>{selectedRecipe.carbs || 0}g</Title>
-                      <Text style={{ color: '#666', fontSize: '12px' }}>碳水</Text>
-                    </Card>
-                </Space>
-              </div>
-            )}
-
-            {'method' in selectedRecipe && selectedRecipe.method && (
-              <div>
-                <Text strong style={{ display: 'block', marginBottom: '8px' }}>制作方法</Text>
-                <Card style={{ borderRadius: '8px', background: '#FFF7E6', border: 'none' }}>
-                  <Paragraph style={{ fontSize: '14px', lineHeight: '1.6', marginBottom: 0 }}>
-                    {selectedRecipe.method}
-                  </Paragraph>
-                </Card>
-              </div>
-            )}
-
-            <Card style={{ borderRadius: '8px', background: '#FFF7E6', border: 'none' }}>
-              <Text style={{ color: '#D46B08', fontSize: '12px' }}>
-                <BulbOutlined /> 提示：添加后将从剩余热量中扣除 {selectedRecipe.calorie} 千卡
-              </Text>
-            </Card>
-
-            <Button type="primary" block size="large" icon={<CheckOutlined />} onClick={() => handleAddRecipe(selectedRecipe)}>
-              添加到今日记录
-            </Button>
-          </Space>
-        )}
-      </Modal>
-
-      {/* Combo Detail Modal */}
-      <Modal
-        open={showComboDetail && !!selectedCombo}
-        onCancel={() => setShowComboDetail(false)}
-        footer={null}
-        closeIcon={<CloseOutlined />}
-        styles={{ body: { padding: '16px' } }}
-      >
-        {selectedCombo && (
-          <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-            <Title level={4} style={{ margin: 0 }}>
-              <span style={{ marginRight: '8px' }}>{selectedCombo.emoji}</span>
-              {selectedCombo.name}
-            </Title>
-
-            <Card
-              style={{
-                borderRadius: '8px',
-                background: selectedCombo.target === 'muscle' ? '#FFF7E6' : '#F6FFED',
-                border: 'none',
-              }}
-            >
-              <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                <Title level={3} style={{ margin: 0, color: selectedCombo.target === 'muscle' ? '#FA8C16' : '#52C41A' }}>
-                  {selectedCombo.totalCalorie} <span style={{ fontSize: '14px', fontWeight: 'normal' }}>千卡</span>
-                </Title>
-                <Tag color={selectedCombo.target === 'muscle' ? 'orange' : 'green'} style={{ fontSize: '14px' }}>
-                  ¥{selectedCombo.totalPrice.toFixed(1)}
+          <div>
+            <div style={{
+              background: 'linear-gradient(135deg, #FFF7E6 0%, #FFE7BA 100%)',
+              padding: '24px 20px',
+            }}>
+              <Title level={3} style={{ margin: 0, color: '#333' }}>{selectedRecipe.name}</Title>
+              <Paragraph style={{ margin: '8px 0 0', color: '#666', fontSize: '14px' }}>
+                {selectedRecipe.description}
+              </Paragraph>
+              <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+                <Tag color="orange">{selectedRecipe.calorie} 千卡</Tag>
+                <Tag>{selectedRecipe.category === 'chinese' ? '中餐' : '轻食'}</Tag>
+                <Tag>
+                  {selectedRecipe.mealType === 'breakfast' ? '早餐' : selectedRecipe.mealType === 'lunch' ? '午餐' : '晚餐'}
                 </Tag>
-              </Space>
-            </Card>
-
-            <div>
-              <Text strong style={{ display: 'block', marginBottom: '8px' }}>套餐内容</Text>
-              <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                {selectedCombo.items.map((itemId, index) => {
-                  const allMenus = Object.values(RESTAURANT_MENUS).flat();
-                  const menuItem = allMenus.find((m) => m.id === itemId);
-                  return (
-                    <Card key={index} style={{ borderRadius: '8px', background: '#FAFAFA', border: 'none' }}>
-                      <Space style={{ width: '100%' }}>
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          background: '#FFF',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          color: '#666',
-                        }}>
-                          {index + 1}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <Text style={{ fontSize: '14px', display: 'block' }}>{menuItem?.name || itemId}</Text>
-                          <Text style={{ color: '#666', fontSize: '12px' }}>{menuItem?.calorie || 0}千卡</Text>
-                        </div>
-                      </Space>
-                    </Card>
-                  );
-                })}
-              </Space>
+                <Tag>
+                  <ClockCircleOutlined /> {selectedRecipe.cookTime}分钟
+                </Tag>
+              </div>
             </div>
 
-            <Space size={8} wrap>
-              {selectedCombo.tags.map((tag) => (
-                <Tag key={tag} color={selectedCombo.target === 'muscle' ? 'orange' : 'green'}>{tag}</Tag>
-              ))}
-            </Space>
+            <div style={{ padding: '20px' }}>
+              <Descriptions column={1} size="middle">
+                <Descriptions.Item label="营养成分">
+                  <Space size={16}>
+                    <span>蛋白质 <Text strong>{selectedRecipe.protein}g</Text></span>
+                    <span>脂肪 <Text strong>{selectedRecipe.fat}g</Text></span>
+                    <span>碳水 <Text strong>{selectedRecipe.carbs}g</Text></span>
+                  </Space>
+                </Descriptions.Item>
+                <Descriptions.Item label="制作方法">
+                  <div style={{
+                    background: '#FFF7E6',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    lineHeight: '1.8',
+                    whiteSpace: 'pre-line',
+                    fontSize: '13px',
+                  }}>
+                    {selectedRecipe.method}
+                  </div>
+                </Descriptions.Item>
+              </Descriptions>
 
-            <Button
-              type="primary"
-              block
-              size="large"
-              style={{
-                background: selectedCombo.target === 'muscle' ? 'linear-gradient(90deg, #FA8C16, #FAAD14)' : undefined,
-              }}
-              onClick={() => {
-                selectedCombo.items.forEach((itemId) => {
-                  const allMenus = Object.values(RESTAURANT_MENUS).flat();
-                  const item = allMenus.find((m) => m.id === itemId);
-                  if (item) handleAddRecipe(item);
-                });
-              }}
-            >
-              一键添加全部菜品
-            </Button>
-          </Space>
+              <Button
+                type="primary"
+                block
+                size="large"
+                icon={<PlusOutlined />}
+                onClick={() => { handleAddToMealPlan(selectedRecipe); setSelectedRecipe(null); }}
+                style={{ marginTop: '16px', borderRadius: '12px' }}
+              >
+                加入定制餐单
+              </Button>
+            </div>
+          </div>
         )}
       </Modal>
 
-      {/* Restaurant Detail Modal */}
       <Modal
-        open={!!selectedRestaurant}
-        onCancel={() => setSelectedRestaurant(null)}
-        footer={null}
+        title="选择日期"
+        open={showDateSelector}
+        onCancel={() => { setShowDateSelector(false); setPendingAddRecipe(null); setSelectedDateForAdd(dayjs()); }}
+        okText="确认添加"
+        cancelText="取消"
+        okButtonProps={{ style: { background: '#FA8C16', borderColor: '#FA8C16' } }}
+        onOk={() => {
+          const recipe = pendingAddRecipeRef.current;
+          const selectedDate = selectedDateForAddRef.current;
+          if (!recipe || !selectedDate) return;
+          const dateStr = selectedDate.format('YYYY-MM-DD');
+          const dayPlan = savedPlansRef.current.find((p) => p.date === dateStr);
+          const existingRecipes = dayPlan ? dayPlan.recipes : [];
+          if (existingRecipes.find((r) => r.id === recipe.id)) {
+            message.info('该菜谱已在所选日期的餐单中');
+            return;
+          }
+          const newRecipes = [...existingRecipes, recipe];
+          setSavedPlans((prev) => {
+            const filtered = prev.filter((p) => p.date !== dateStr);
+            return [...filtered, { date: dateStr, recipes: newRecipes }];
+          });
+          if (dateStr === selectedPlanDateRef.current) {
+            setCustomMealPlan(newRecipes);
+          }
+          message.success(`已添加到 ${dateStr} 的餐单`);
+          setShowDateSelector(false);
+          setPendingAddRecipe(null);
+          setSelectedDateForAdd(dayjs());
+        }}
         closeIcon={<CloseOutlined />}
-        styles={{ body: { padding: '16px' } }}
+        afterClose={() => {
+          setSelectedDateForAdd(dayjs());
+        }}
       >
-        {selectedRestaurant && (
-          <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-            <Title level={4} style={{ margin: 0 }}>{selectedRestaurant.name}</Title>
-
-            <Card style={{ borderRadius: '8px', background: '#FFF7E6', border: 'none' }}>
-              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-                <Space>
-                  <span style={{ fontSize: '32px' }}>{selectedRestaurant.emoji}</span>
-                  <div>
-                    <Text strong style={{ fontSize: '14px', display: 'block' }}>{selectedRestaurant.name}</Text>
-                    <Text style={{ color: '#666', fontSize: '12px' }}>
-                      <EnvironmentOutlined style={{ marginRight: '4px' }} />{selectedRestaurant.address}
-                    </Text>
-                  </div>
-                </Space>
-                <Space size={8}>
-                  <Tag color="orange"><StarOutlined /> {selectedRestaurant.rating}</Tag>
-                  <Tag color="blue"><EnvironmentOutlined /> {selectedRestaurant.distance}km</Tag>
-                  <Tag color="green"><ClockCircleOutlined /> {selectedRestaurant.deliveryTime}</Tag>
-                </Space>
-              </Space>
-            </Card>
-
-            <div>
-              <Text strong style={{ display: 'block', marginBottom: '12px' }}>推荐菜品</Text>
-              <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                {(RESTAURANT_MENUS[selectedRestaurant.id] || []).map((item) => (
-                  <Card
-                    key={item.id}
-                    hoverable
-                    styles={{ body: { padding: '12px' } }}
-                    onClick={() => { setSelectedRecipe(item); setSelectedRestaurant(null); }}
-                    style={{ borderRadius: '8px', background: '#FAFAFA', border: 'none' }}
-                  >
-                    <Space style={{ width: '100%' }}>
-                      <span style={{ fontSize: '20px' }}>{item.emoji}</span>
-                      <div style={{ flex: 1 }}>
-                        <Text style={{ fontSize: '14px', display: 'block' }}>{item.name}</Text>
-                        <Text style={{ color: '#666', fontSize: '12px' }}>{item.category}</Text>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <Text type="warning" strong style={{ fontSize: '14px', display: 'block' }}>{item.calorie}千卡</Text>
-                        <Text style={{ color: '#666', fontSize: '12px' }}>¥{item.price}</Text>
-                      </div>
-                    </Space>
-                  </Card>
-                ))}
-              </Space>
-            </div>
-          </Space>
-        )}
+        <div style={{ textAlign: 'center' }}>
+          <Text style={{ marginBottom: '16px', display: 'block', color: '#666' }}>
+            {pendingAddRecipe && `将 "${pendingAddRecipe.name}" 添加到哪天的餐单？`}
+          </Text>
+          <DatePicker
+            value={selectedDateForAdd}
+            onChange={(date) => {
+              if (date) {
+                setSelectedDateForAdd(date);
+              }
+            }}
+            format="YYYY-MM-DD"
+            style={{ width: '100%' }}
+            disabledDate={(current) => {
+              return current && (current.isBefore(dayjs().subtract(7, 'day'), 'day') || current.isAfter(dayjs().add(7, 'day'), 'day'));
+            }}
+          />
+          <Text style={{ marginTop: '8px', display: 'block', fontSize: '12px', color: '#999' }}>
+            可选择前后7天内的日期，选择后点击确认添加
+          </Text>
+        </div>
       </Modal>
     </div>
   );
