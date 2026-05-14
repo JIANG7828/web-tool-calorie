@@ -117,7 +117,7 @@ const getCalorieColor = (calorie: number | undefined): string => {
 export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFoodModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFoods, setSelectedFoods] = useState<Map<string, { food: Food; portion: number }>>(new Map());
-  const [mealType, setMealType] = useState('lunch');
+  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('lunch');
   const [activeCategory, setActiveCategory] = useState('all');
   const { addFoodRecord } = useCalorieStore();
   const listRef = useRef<HTMLDivElement>(null);
@@ -126,7 +126,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
 
   useEffect(() => {
     if (isOpen && defaultMealType) {
-      setMealType(defaultMealType);
+      setMealType(defaultMealType as 'breakfast' | 'lunch' | 'dinner' | 'snack');
     }
     if (!isOpen) {
       setSelectedFoods(new Map());
@@ -190,7 +190,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
         name: food.name,
         calorie,
         time: timeStr,
-        mealType: mealType as any,
+        mealType,
         macro,
         timestamp: now.getTime(),
       });
@@ -369,7 +369,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
                 type={mealType === t.key ? 'primary' : 'default'}
                 size="small"
                 style={{ borderRadius: '16px' }}
-                onClick={() => setMealType(t.key)}
+                onClick={() => setMealType(t.key as 'breakfast' | 'lunch' | 'dinner' | 'snack')}
               >
                 {t.label}
               </Button>

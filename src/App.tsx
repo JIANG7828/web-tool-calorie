@@ -5,12 +5,13 @@ import ExercisePage from './pages/ExercisePage';
 import ProfilePage from './pages/ProfilePage';
 import TakeoutPage from './pages/TakeoutPage';
 import FoodRecognitionPage from './pages/FoodRecognitionPage';
-import { HomeOutlined, BookOutlined, CameraOutlined, FireOutlined, UserOutlined } from '@ant-design/icons';
+import FoodRecordsPage from './pages/FoodRecordsPage';
+import { HomeOutlined, BookOutlined, CameraOutlined, FireOutlined, UserOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useCalorieStore } from './store/calorieStore';
 
 const { Content } = Layout;
 
-type TabType = 'home' | 'recipe' | 'recognition' | 'exercise' | 'profile';
+type TabType = 'home' | 'recipe' | 'recognition' | 'records' | 'exercise' | 'profile';
 
 interface AddFoodRecordEvent {
   name: string;
@@ -70,6 +71,8 @@ function AppContent() {
         return <TakeoutPage />;
       case 'recognition':
         return <FoodRecognitionPage />;
+      case 'records':
+        return <FoodRecordsPage />;
       case 'exercise':
         return <ExercisePage />;
       case 'profile':
@@ -129,6 +132,7 @@ function AppContent() {
             {[
               { key: 'home' as TabType, icon: <HomeOutlined />, label: '首页' },
               { key: 'recipe' as TabType, icon: <BookOutlined />, label: '菜谱' },
+              { key: 'records' as TabType, icon: <FileTextOutlined />, label: '记录' },
               { key: 'recognition' as TabType, icon: <CameraOutlined />, label: '识食物' },
               { key: 'exercise' as TabType, icon: <FireOutlined />, label: '运动' },
               { key: 'profile' as TabType, icon: <UserOutlined />, label: '我的' },

@@ -1,5 +1,5 @@
 import { Card, Space, Progress, Button, Tag, Statistic, Badge } from 'antd';
-import { FireOutlined, FireFilled, PlusOutlined, CoffeeOutlined, CloudOutlined, ThunderboltOutlined, AppstoreOutlined, AimOutlined, CameraOutlined, StarOutlined, DeleteOutlined, CheckOutlined } from '@ant-design/icons';
+import { FireOutlined, FireFilled, PlusOutlined, CoffeeOutlined, CloudOutlined, ThunderboltOutlined, AppstoreOutlined, AimOutlined, CameraOutlined, StarOutlined, DeleteOutlined, CheckOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useCalorieStore } from '../store/calorieStore';
 import { formatDate } from '../utils/calorie';
 import { getRecipesByDate, deleteMealPlanByDate } from '../utils/recipeData';
@@ -344,6 +344,7 @@ export default function Home() {
                             breakfast: 'breakfast',
                             lunch: 'lunch',
                             dinner: 'dinner',
+                            snack: 'snack',
                           };
                           addFoodRecord({
                             id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
@@ -414,6 +415,30 @@ export default function Home() {
             </div>
           </div>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAddWater} />
+        </div>
+      </Card>
+
+      {/* Food Records Entry */}
+      <Card
+        style={{ marginBottom: '24px', borderRadius: '8px', cursor: 'pointer' }}
+        styles={{ body: { padding: '16px' } }}
+        onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'records' } }))}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '6px',
+              backgroundColor: '#F6FFED', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: '20px',
+            }}>
+              <FileTextOutlined style={{ color: '#52C41A' }} />
+            </div>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#333', margin: 0 }}>食物记录</p>
+              <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>查看已添加的食物和热量详情</p>
+            </div>
+          </div>
+          <span style={{ fontSize: '20px', color: '#666', opacity: 0.4 }}>›</span>
         </div>
       </Card>
 
