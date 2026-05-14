@@ -21,41 +21,49 @@ function WeightChart({ data, targetWeight }: { data: { date: string; weight: num
   }
 
   const weights = data.map(d => d.weight * 2); // Convert kg to jin
-  const maxWeight = Math.max(...weights, targetWeight ? targetWeight * 2 : 0, 100);
-  const minWeight = Math.min(...weights, targetWeight ? targetWeight * 2 : 100) * 0.9;
-  const range = Math.max(maxWeight - minWeight, 1);
+  const targetJin = targetWeight ? targetWeight * 2 : null;
 
-  const chartWidth = 300;
+  // Fixed Y-axis range: 80-200 jin (40-100 kg), suitable for most users
+  const chartMin = 80;
+  const chartMax = 200;
+  const range = chartMax - chartMin;
+
+  const chartWidth = 320;
   const chartHeight = 180;
-  const padding = 20;
+  const paddingLeft = 48;
+  const paddingRight = 20;
+  const paddingTop = 10;
+  const paddingBottom = 20;
 
   const points = data.map((d, i) => {
-    const x = data.length > 1 ? padding + (i / (data.length - 1)) * (chartWidth - padding * 2) : chartWidth / 2;
-    const y = chartHeight - padding - ((d.weight * 2 - minWeight) / range) * (chartHeight - padding * 2);
+    const plotWidth = chartWidth - paddingLeft - paddingRight;
+    const plotHeight = chartHeight - paddingTop - paddingBottom;
+    const x = data.length > 1 ? paddingLeft + (i / (data.length - 1)) * plotWidth : chartWidth / 2;
+    const y = chartHeight - paddingBottom - ((d.weight * 2 - chartMin) / range) * plotHeight;
     return { x, y, date: d.date, weight: d.weight * 2 };
   });
 
   const pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
 
-  const targetY = targetWeight
-    ? chartHeight - padding - ((targetWeight * 2 - minWeight) / range) * (chartHeight - padding * 2)
+  const targetY = targetJin
+    ? chartHeight - paddingBottom - ((targetJin - chartMin) / range) * (chartHeight - paddingTop - paddingBottom)
     : null;
 
   const gridLines = [];
   for (let i = 0; i <= 4; i++) {
-    const y = chartHeight - padding - (i / 4) * (chartHeight - padding * 2);
-    const value = Math.round(maxWeight - (i / 4) * range);
+    const y = chartHeight - paddingBottom - (i / 4) * (chartHeight - paddingTop - paddingBottom);
+    const value = Math.round(chartMin + (i / 4) * range);
     gridLines.push(
       <g key={i}>
         <line
-          x1={padding}
+          x1={paddingLeft}
           y1={y}
-          x2={chartWidth - padding}
+          x2={chartWidth - paddingRight}
           y2={y}
           stroke="#E8E8E8"
           strokeDasharray="4,4"
         />
-        <text x={padding - 8} y={y + 4} fontSize="10" fill="#999" textAnchor="end">
+        <text x={paddingLeft - 6} y={y + 4} fontSize="10" fill="#999" textAnchor="end">
           {value}
         </text>
       </g>
@@ -72,16 +80,16 @@ function WeightChart({ data, targetWeight }: { data: { date: string; weight: num
         {targetY !== null && (
           <>
             <line
-              x1={padding}
+              x1={paddingLeft}
               y1={targetY}
-              x2={chartWidth - padding}
+              x2={chartWidth - paddingRight}
               y2={targetY}
               stroke="#52C41A"
               strokeDasharray="8,4"
               strokeWidth="1.5"
             />
             <text
-              x={chartWidth - padding + 5}
+              x={chartWidth - paddingRight + 5}
               y={targetY + 4}
               fontSize="10"
               fill="#52C41A"
@@ -104,7 +112,7 @@ function WeightChart({ data, targetWeight }: { data: { date: string; weight: num
 
         {/* Area under line */}
         <path
-          d={`${pathData} L ${points[points.length - 1].x} ${chartHeight - padding} L ${padding} ${chartHeight - padding} Z`}
+          d={`${pathData} L ${points[points.length - 1].x} ${chartHeight - paddingBottom} L ${paddingLeft} ${chartHeight - paddingBottom} Z`}
           fill="url(#gradient)"
           opacity="0.3"
         />

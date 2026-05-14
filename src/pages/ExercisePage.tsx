@@ -102,7 +102,7 @@ function ActivityModal({ isOpen, onClose, activity, onAdd }: ActivityModalProps)
             <Statistic
               value={Math.round(calcSportCal(activity.met, 60, duration))}
               suffix="千卡"
-              valueStyle={{ color: '#FA8C16', fontSize: '20px' }}
+              styles={{ content: { color: '#FA8C16', fontSize: '20px' } }}
             />
           </div>
         </Card>

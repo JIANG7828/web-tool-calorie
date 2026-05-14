@@ -1,5 +1,5 @@
-import { Card, Progress, Button, Tag, Statistic, Badge } from 'antd';
-import { FireOutlined, FireFilled, PlusOutlined, CoffeeOutlined, CloudOutlined, ThunderboltOutlined, AppstoreOutlined, AimOutlined, CameraOutlined, StarOutlined, DeleteOutlined, CheckOutlined } from '@ant-design/icons';
+import { Card, Progress, Button, Tag, Statistic, Badge, Modal } from 'antd';
+import { FireOutlined, FireFilled, PlusOutlined, CoffeeOutlined, CloudOutlined, ThunderboltOutlined, AppstoreOutlined, AimOutlined, CameraOutlined, StarOutlined, DeleteOutlined, CheckOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useCalorieStore } from '../store/calorieStore';
 import { formatDate } from '../utils/calorie';
 import { getRecipesByDate, deleteMealPlanByDate } from '../utils/recipeData';
@@ -37,6 +37,7 @@ export default function Home() {
     getWaterCountByDate,
     addWater,
     addFoodRecord,
+    removeFoodRecord,
   } = useCalorieStore();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -47,6 +48,7 @@ export default function Home() {
   const [animateProgress, setAnimateProgress] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState('lunch');
   const [showTodayMealPlan, setShowTodayMealPlan] = useState(false);
+  const [showFoodRecords, setShowFoodRecords] = useState(true);
 
   const selectedDateStr = selectedDate.toISOString().split('T')[0];
   const todayStr = new Date().toISOString().split('T')[0];
@@ -79,10 +81,21 @@ export default function Home() {
   })();
 
   const targetCal = getTargetCalorie(userSettings);
+  const weight = userSettings.weight || 55;
+  const activityLevel = userSettings.activityLevel || 1.2;
+  const bmr = weight * 22;
+  const tdee = Math.round(bmr * activityLevel);
   const totalCal = dateTotalCal;
   const macros = dateMacros;
   const remaining = targetCal - totalCal;
+  const deficit = tdee - totalCal;
   const progress = Math.min((totalCal / targetCal) * 100, 100);
+
+  const getTargetLabel = () => {
+    if (userSettings.target === 'fat') return '减脂';
+    if (userSettings.target === 'muscle') return '增肌';
+    return '维持';
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimateProgress(true), 300);
@@ -119,11 +132,26 @@ export default function Home() {
     <div style={{ padding: '16px' }}>
       {/* Header */}
       <div style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '16px' }}>
           <div>
             <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Hi, {userSettings.nickname || '用户'}</p>
-            <h1 className="page-title">{getDateTitle()}</h1>
+            <h1 className="page-title" style={{ margin: 0 }}>{getDateTitle()}</h1>
           </div>
+          <Button
+            type="text"
+            size="small"
+            icon={<StarOutlined style={{ color: '#FA8C16' }} />}
+            onClick={() => setShowTodayMealPlan(!showTodayMealPlan)}
+            style={{
+              background: '#FFF7E6', border: '1px solid #FFE7BA', borderRadius: '8px',
+              padding: '6px 14px', height: 'auto', flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#FA8C16' }}>定制餐单</span>
+            <Tag style={{ margin: 0, marginLeft: '6px', background: '#FA8C16', color: '#fff', border: 'none', fontSize: '10px' }}>
+              {todayMealPlan.length}
+            </Tag>
+          </Button>
         </div>
 
         {/* Date Navigator */}
@@ -165,7 +193,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Calorie Ring Card */}
+      {/* Calorie Card */}
       <Card style={{ marginBottom: '24px', borderRadius: '8px' }} styles={{ body: { padding: '16px' } }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div style={{ flex: 1 }}>
@@ -174,9 +202,34 @@ export default function Home() {
               <span style={{ fontSize: '28px', fontWeight: 700, color: '#333' }}>{totalCal}</span>
               <span style={{ fontSize: '14px', color: '#666' }}>/ {targetCal} 千卡</span>
             </div>
-            <p style={{ fontSize: '12px', color: remaining >= 0 ? '#52C41A' : '#FF4D4F', fontWeight: 500, marginBottom: '16px' }}>
+            <p style={{ fontSize: '12px', color: remaining >= 0 ? '#52C41A' : '#FF4D4F', fontWeight: 500, marginBottom: '12px' }}>
               {remaining >= 0 ? `剩余 ${remaining} 千卡` : `超标 ${Math.abs(remaining)} 千卡`}
             </p>
+
+            {/* Calorie Details */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ flex: 1, background: '#F0F5FF', borderRadius: '6px', padding: '8px 10px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0 0 2px 0' }}>基础消耗</p>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#333', margin: 0 }}>{tdee} <span style={{ fontSize: '10px', color: '#999' }}>千卡</span></p>
+              </div>
+              <div style={{ flex: 1, background: '#F6FFED', borderRadius: '6px', padding: '8px 10px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0 0 2px 0' }}>目标摄入</p>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#333', margin: 0 }}>{targetCal} <span style={{ fontSize: '10px', color: '#999' }}>千卡</span></p>
+              </div>
+              <div style={{ flex: 1, background: deficit >= 0 ? '#FFF7E6' : '#FFF1F0', borderRadius: '6px', padding: '8px 10px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0 0 2px 0' }}>热量缺口</p>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: deficit >= 0 ? '#FA8C16' : '#FF4D4F', margin: 0 }}>
+                  {deficit >= 0 ? '+' : '-'}{Math.abs(deficit)} <span style={{ fontSize: '10px', color: '#999' }}>千卡</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Target Label */}
+            <div style={{ marginBottom: '12px' }}>
+              <Tag color="blue">{getTargetLabel()}模式</Tag>
+              {userSettings.target === 'fat' && <span style={{ fontSize: '11px', color: '#999', marginLeft: '4px' }}>目标消耗 {tdee - targetCal} 千卡/天</span>}
+              {userSettings.target === 'muscle' && <span style={{ fontSize: '11px', color: '#999', marginLeft: '4px' }}>目标盈余 {targetCal - tdee} 千卡/天</span>}
+            </div>
 
             {/* Macro Progress */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
@@ -271,129 +324,151 @@ export default function Home() {
         </div>
       </Card>
 
-      {/* Custom Meal Plan Banner */}
-      <Card
-        style={{
-          marginBottom: '24px', borderRadius: '12px', cursor: 'pointer',
-          background: '#FFF7E6',
-          border: '1px solid #FFE7BA',
-        }}
-        styles={{ body: { padding: '16px 20px' } }}
-        onClick={() => setShowTodayMealPlan(!showTodayMealPlan)}
+      {/* Custom Meal Plan Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <StarOutlined style={{ color: '#FA8C16' }} />
+            <span>今日定制餐单</span>
+            <Tag style={{ background: '#FA8C16', color: '#fff', border: 'none', fontSize: '10px' }}>
+              {todayMealPlan.length} 道菜
+            </Tag>
+          </div>
+        }
+        open={showTodayMealPlan}
+        onCancel={() => setShowTodayMealPlan(false)}
+        footer={
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button danger block icon={<DeleteOutlined />} onClick={() => { deleteMealPlanByDate(selectedDateStr); setTodayMealPlan(getRecipesByDate(selectedDateStr)); }}>
+              删除今日餐单
+            </Button>
+            <Button type="primary" block icon={<StarOutlined />} onClick={() => { setShowTodayMealPlan(false); window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'recipe' } })); }} style={{ background: '#FA8C16', borderColor: '#FA8C16' }}>
+              定制更多
+            </Button>
+          </div>
+        }
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {todayMealPlan.length === 0 ? (
+          <p style={{ fontSize: '13px', color: '#999', textAlign: 'center', margin: '16px 0' }}>
+            今日暂无定制餐单
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflow: 'auto' }}>
+            {todayMealPlan.map((recipe) => (
+              <Card key={recipe.id} size="small" style={{ borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#333', margin: '0 0 4px 0' }}>
+                      {recipe.name}
+                      <Tag style={{ marginLeft: '8px', fontSize: '10px' }}>
+                        {recipe.category === 'chinese' ? '中餐' : '轻食'}
+                      </Tag>
+                      <Tag style={{ fontSize: '10px' }}>
+                        {recipe.mealType === 'breakfast' ? '早餐' : recipe.mealType === 'lunch' ? '午餐' : '晚餐'}
+                      </Tag>
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
+                      {recipe.calorie}千卡 | 蛋白质{recipe.protein}g 脂肪{recipe.fat}g 碳水{recipe.carbs}g
+                    </p>
+                  </div>
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const timeStr = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+                      const mealTypeMap: Record<string, string> = {
+                        breakfast: 'breakfast',
+                        lunch: 'lunch',
+                        dinner: 'dinner',
+                        snack: 'snack',
+                      };
+                      addFoodRecord({
+                        id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
+                        date: new Date().toISOString().split('T')[0],
+                        name: recipe.name,
+                        calorie: recipe.calorie,
+                        time: timeStr,
+                        mealType: mealTypeMap[recipe.mealType] as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+                        macro: {
+                          protein: recipe.protein,
+                          fat: recipe.fat,
+                          carbs: recipe.carbs,
+                        },
+                        timestamp: Date.now(),
+                      });
+                      setTodayMealPlan(getRecipesByDate(selectedDateStr));
+                    }}
+                  >
+                    添加到记录
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* Food Records */}
+      <Card
+        hoverable
+        size="small"
+        style={{ marginBottom: '24px', borderRadius: '12px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+        styles={{ body: { padding: '16px 20px' } }}
+        onClick={() => setShowFoodRecords(!showFoodRecords)}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              width: '44px', height: '44px', borderRadius: '10px',
-              backgroundColor: '#FA8C16', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: '22px',
+              width: '40px', height: '40px', borderRadius: '6px',
+              backgroundColor: '#F6FFED', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: '20px',
             }}>
-              <StarOutlined style={{ color: '#fff' }} />
+              <FileTextOutlined style={{ color: '#52C41A' }} />
             </div>
             <div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#333', margin: 0 }}>
-                今日定制餐单
-                <Tag style={{ marginLeft: '8px', background: '#FA8C16', color: '#fff', border: 'none', fontSize: '10px' }}>
-                  {todayMealPlan.length} 道菜
-                </Tag>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#333', margin: 0 }}>食物记录</p>
+              <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
+                {isToday ? '今日' : '当日'}已记录 {dateRecords.length} 条食物，共 {dateTotalCal} 千卡
               </p>
-              <p style={{ fontSize: '12px', color: '#666', margin: '2px 0 0 0' }}>点击查看今日餐单详情</p>
             </div>
           </div>
           <span style={{ fontSize: '20px', color: '#666', opacity: 0.4 }}>›</span>
         </div>
-        
-        {showTodayMealPlan && (
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #FFE7BA' }}>
-            {todayMealPlan.length === 0 ? (
-              <p style={{ fontSize: '13px', color: '#999', textAlign: 'center', margin: '16px 0' }}>
-                今日暂无定制餐单
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-                {todayMealPlan.map((recipe) => (
-                  <Card key={recipe.id} size="small" style={{ borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#333', margin: '0 0 4px 0' }}>
-                          {recipe.name}
-                          <Tag style={{ marginLeft: '8px', fontSize: '10px' }}>
-                            {recipe.category === 'chinese' ? '中餐' : '轻食'}
-                          </Tag>
-                          <Tag style={{ fontSize: '10px' }}>
-                            {recipe.mealType === 'breakfast' ? '早餐' : recipe.mealType === 'lunch' ? '午餐' : '晚餐'}
-                          </Tag>
-                        </p>
-                        <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
-                          {recipe.calorie}千卡 | 蛋白质{recipe.protein}g 脂肪{recipe.fat}g 碳水{recipe.carbs}g
-                        </p>
-                      </div>
-                      <Button
-                        type="primary"
-                        size="small"
-                        icon={<PlusOutlined />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const timeStr = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
-                          const mealTypeMap: Record<string, string> = {
-                            breakfast: 'breakfast',
-                            lunch: 'lunch',
-                            dinner: 'dinner',
-                            snack: 'snack',
-                          };
-                          addFoodRecord({
-                            id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
-                            date: new Date().toISOString().split('T')[0],
-                            name: recipe.name,
-                            calorie: recipe.calorie,
-                            time: timeStr,
-                            mealType: mealTypeMap[recipe.mealType] as 'breakfast' | 'lunch' | 'dinner' | 'snack',
-                            macro: {
-                              protein: recipe.protein,
-                              fat: recipe.fat,
-                              carbs: recipe.carbs,
-                            },
-                            timestamp: Date.now(),
-                          });
-                          setTodayMealPlan(getRecipesByDate(selectedDateStr));
-                        }}
-                      >
-                        添加到记录
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <Button
-                    danger
-                    block
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteMealPlanByDate(selectedDateStr);
-                      setTodayMealPlan(getRecipesByDate(selectedDateStr));
-                    }}
-                  >
-                    删除今日餐单
-                  </Button>
-                  <Button
-                    type="primary"
-                    block
-                    icon={<StarOutlined />}
-                    onClick={(e) => {
-                    e.stopPropagation();
-                    window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'recipe' } }));
-                  }}
-                    style={{ background: '#FA8C16', borderColor: '#FA8C16' }}
-                  >
-                    定制更多
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </Card>
+
+      {showFoodRecords && dateRecords.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
+          {dateRecords.map((record) => (
+            <Card key={record.id} size="small" style={{ borderRadius: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#333', margin: '0 0 2px 0' }}>
+                    {record.name}
+                    <Tag style={{ marginLeft: '8px', fontSize: '10px' }}>
+                      {record.mealType === 'breakfast' ? '早餐' : record.mealType === 'lunch' ? '午餐' : record.mealType === 'dinner' ? '晚餐' : '加餐'}
+                    </Tag>
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
+                    {record.time} · {record.calorie} 千卡
+                    {record.macro && ` · 蛋白质${record.macro.protein}g 脂肪${record.macro.fat}g 碳水${record.macro.carbs}g`}
+                  </p>
+                </div>
+                <Button
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  onClick={() => {
+                    removeFoodRecord(record.id);
+                    setTodayMealPlan(getRecipesByDate(selectedDateStr));
+                  }}
+                />
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Water Tracker */}
       <Card style={{ marginBottom: '24px', borderRadius: '8px' }} styles={{ body: { padding: '16px' } }}>
