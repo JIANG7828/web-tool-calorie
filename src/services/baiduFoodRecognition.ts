@@ -51,6 +51,10 @@ function fileToCompressedBase64(file: File): Promise<string> {
 }
 
 async function tryVisionRecognition(base64Image: string): Promise<FoodRecognitionResult[]> {
+  if (!API_KEY) {
+    throw new Error('API 密钥未配置');
+  }
+
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
@@ -58,7 +62,7 @@ async function tryVisionRecognition(base64Image: string): Promise<FoodRecognitio
       'Authorization': `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'qwen-vl-max',
+      model: 'qwen-vl-plus',
       messages: [
         {
           role: 'user',
@@ -84,13 +88,11 @@ async function tryVisionRecognition(base64Image: string): Promise<FoodRecognitio
   });
 
   if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`API ${response.status}: ${errText}`);
+    return [];
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
-  // 静默处理识别结果
 
   const jsonStr = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   const results = JSON.parse(jsonStr);

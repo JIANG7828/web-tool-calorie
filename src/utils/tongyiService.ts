@@ -22,11 +22,11 @@ export interface TongyiResponse {
  * 调用通义千问 API
  */
 export async function callTongyi(messages: TongyiMessage[]): Promise<string> {
-  try {
-    if (!API_KEY) {
-      throw new Error('API 密钥未配置');
-    }
+  if (!API_KEY) {
+    return '';
+  }
 
+  try {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -34,7 +34,7 @@ export async function callTongyi(messages: TongyiMessage[]): Promise<string> {
         'Authorization': `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'qwen-plus',
+        model: 'qwen-turbo',
         messages,
         temperature: 0.7,
         max_tokens: 1024,
@@ -42,13 +42,12 @@ export async function callTongyi(messages: TongyiMessage[]): Promise<string> {
     });
 
     if (!response.ok) {
-      throw new Error(`API 请求失败: ${response.status}`);
+      return '';
     }
 
     const data: TongyiResponse = await response.json();
     return data.choices[0]?.message?.content || '';
-  } catch (error) {
-    // 静默失败，不打印错误日志
+  } catch {
     return '';
   }
 }

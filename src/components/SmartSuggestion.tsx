@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { generateMealSuggestion, AISuggestion, getLastMealSummary, MealHistory } from '../utils/aiSuggestion';
 import { UserProfile } from '../utils/aiSuggestion';
 import { Card, Space, Tag, Typography, Button, Skeleton, Spin } from 'antd';
@@ -54,8 +54,12 @@ export default function SmartSuggestion({
 }: SmartSuggestionProps) {
   const [suggestion, setSuggestion] = useState<AISuggestion | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     const fetchSuggestion = async () => {
       setLoading(true);
       try {
@@ -91,7 +95,7 @@ export default function SmartSuggestion({
     };
 
     fetchSuggestion();
-  }, [mealTime, todayRecords.length]);
+  }, []);
 
   // 计算热量状态
   const mealTarget = targetCal * MEAL_TARGET_RATIO[mealTime];

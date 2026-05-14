@@ -471,7 +471,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
                     return (
                       <div
                         key={cat.key}
-                        ref={(el) => { categoryRefs.current[cat.key] = el; }}
+                        ref={(el) => { if (el) categoryRefs.current[cat.key] = el; }}
                         style={{ marginBottom: '16px' }}
                       >
                         <div style={{
@@ -487,7 +487,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
                         {catFoods.map(food => renderFoodItem(food))}
                       </div>
                     );
-                  })
+                  }).filter(Boolean)
                 : (
                   <div
                     ref={(el) => { categoryRefs.current[activeCategory] = el; }}
