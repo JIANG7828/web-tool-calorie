@@ -1,55 +1,33 @@
 {
-  "envId": "${CLOUDBASE_ENV_ID}",
+  "envId": "vehicle-app-d1gsqheo6a1c88106",
   "region": "ap-shanghai",
-  "cloudfunctionRoot": "cloudfunctions/",
   "functionRoot": "cloudfunctions/",
-  "framework": {
-    "name": "health-app",
-    "plugins": {
-      "auth-register": {
-        "use": "@cloudbase/framework-plugin-function",
-        "inputs": {
-          "name": "auth-register",
-          "handler": "index.main",
-          "runtime": "Nodejs18.15",
-          "installDependency": true,
-          "functionSecretId": "${FUNCTION_SECRET_ID}",
-          "functionSecretKey": "${FUNCTION_SECRET_KEY}",
-          "environmentVariables": {
-            "JWT_SECRET": "${JWT_SECRET}",
-            "JWT_EXPIRE_HOURS": "168"
-          }
-        }
-      },
-      "auth-login": {
-        "use": "@cloudbase/framework-plugin-function",
-        "inputs": {
-          "name": "auth-login",
-          "handler": "index.main",
-          "runtime": "Nodejs18.15",
-          "installDependency": true,
-          "functionSecretId": "${FUNCTION_SECRET_ID}",
-          "functionSecretKey": "${FUNCTION_SECRET_KEY}",
-          "environmentVariables": {
-            "JWT_SECRET": "${JWT_SECRET}",
-            "JWT_EXPIRE_HOURS": "168"
-          }
-        }
-      },
-      "auth-reset-password": {
-        "use": "@cloudbase/framework-plugin-function",
-        "inputs": {
-          "name": "auth-reset-password",
-          "handler": "index.main",
-          "runtime": "Nodejs18.15",
-          "installDependency": true,
-          "functionSecretId": "${FUNCTION_SECRET_ID}",
-          "functionSecretKey": "${FUNCTION_SECRET_KEY}",
-          "environmentVariables": {
-            "JWT_SECRET": "${JWT_SECRET}"
-          }
-        }
+  "functions": [
+    {
+      "name": "auth-register",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "envVariables": {
+        "JWT_SECRET": "health_app_jwt_secret_key_2025_change_me",
+        "JWT_EXPIRE_HOURS": "168"
+      }
+    },
+    {
+      "name": "auth-login",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "envVariables": {
+        "JWT_SECRET": "health_app_jwt_secret_key_2025_change_me",
+        "JWT_EXPIRE_HOURS": "168"
+      }
+    },
+    {
+      "name": "auth-reset-password",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "envVariables": {
+        "JWT_SECRET": "health_app_jwt_secret_key_2025_change_me"
       }
     }
-  }
+  ]
 }
