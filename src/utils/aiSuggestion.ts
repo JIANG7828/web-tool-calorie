@@ -181,7 +181,7 @@ ${todayRecordsFiltered.map(r => `- ${r.name}: ${r.calorie}千卡 (蛋白质${r.m
       };
     }
   } catch (error) {
-    console.error('AI 菜谱推荐失败:', error);
+    // 静默失败，使用本地推荐
   }
   
   // 降级到规则引擎
@@ -326,7 +326,7 @@ export async function generateMealSuggestion(
       };
     }
   } catch (error) {
-    console.error('AI 饮食建议生成失败:', error);
+    // 静默失败
   }
   
   // 降级到规则引擎

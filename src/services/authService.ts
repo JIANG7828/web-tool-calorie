@@ -327,8 +327,7 @@ export function generateResetCode(username: string): { success: boolean; code?: 
   
   localStorage.setItem(PASSWORD_RESET_CODE_KEY, JSON.stringify(resetCodes));
   
-  console.log(`密码重置码已生成 (用户名: ${username}): ${code}`);
-  
+  // 静默生成重置码
   return { success: true, code };
 }
 

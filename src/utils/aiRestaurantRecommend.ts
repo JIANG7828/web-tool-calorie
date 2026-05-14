@@ -198,7 +198,7 @@ ${r.lowCalorieDishes.map(d => `    - ${d.name} (${d.calorie}千卡, 蛋白质${d
       return result;
     }
   } catch (error) {
-    console.error('AI 餐厅推荐失败:', error);
+    // 静默失败
   }
   
   // 降级到规则引擎

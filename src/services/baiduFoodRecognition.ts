@@ -90,7 +90,7 @@ async function tryVisionRecognition(base64Image: string): Promise<FoodRecognitio
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
-  console.log('AI识别返回:', content);
+  // 静默处理识别结果
 
   const jsonStr = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   const results = JSON.parse(jsonStr);

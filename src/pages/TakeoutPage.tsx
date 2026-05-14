@@ -167,7 +167,7 @@ export default function TakeoutPage() {
       setAiRecommendations(result);
       hasEvaluatedRef.current = true;
     } catch (error) {
-      console.error('AI推荐失败:', error);
+      // 静默失败，不影响主流程
     } finally {
       setAiLoading(false);
     }
@@ -189,7 +189,6 @@ export default function TakeoutPage() {
 
   const handleConfirmAddToMealPlan = () => {
     if (!pendingAddRecipeRef.current || !selectedDateForAddRef.current) {
-      console.warn('Missing recipe or date');
       return;
     }
     

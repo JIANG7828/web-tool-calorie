@@ -78,8 +78,7 @@ export default function SmartSuggestion({
         const result = await generateMealSuggestion(lastMeal, profile);
         setSuggestion(result);
       } catch (error) {
-        console.error('获取 AI 建议失败:', error);
-        // 降级使用默认建议
+        // 静默失败，使用默认建议
         setSuggestion({
           suggestion: '上一餐热量适中',
           nextMealRecommendation: '下一餐注意营养均衡',

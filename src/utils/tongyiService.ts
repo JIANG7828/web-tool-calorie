@@ -23,6 +23,10 @@ export interface TongyiResponse {
  */
 export async function callTongyi(messages: TongyiMessage[]): Promise<string> {
   try {
+    if (!API_KEY) {
+      throw new Error('API 密钥未配置');
+    }
+
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -44,8 +48,8 @@ export async function callTongyi(messages: TongyiMessage[]): Promise<string> {
     const data: TongyiResponse = await response.json();
     return data.choices[0]?.message?.content || '';
   } catch (error) {
-    console.error('通义千问 API 调用失败:', error);
-    throw error;
+    // 静默失败，不打印错误日志
+    return '';
   }
 }
 

@@ -53,7 +53,6 @@ export default function FoodRecognitionPage() {
       setError('');
     } catch (err) {
       setError('无法访问相机，请检查权限设置');
-      console.error('相机访问错误:', err);
     }
   };
 
@@ -117,7 +116,6 @@ export default function FoodRecognitionPage() {
       });
       setRecognizedItems(items);
     } catch (err) {
-      console.error('识别失败:', err);
       setError('识别失败，请重试');
     } finally {
       setIsRecognizing(false);
