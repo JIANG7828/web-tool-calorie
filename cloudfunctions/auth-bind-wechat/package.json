@@ -1,0 +1,9 @@
+{
+  "name": "auth-bind-wechat",
+  "version": "1.0.0",
+  "description": "绑定微信云函数",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^2.5.0"
+  }
+}

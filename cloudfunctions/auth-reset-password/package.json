@@ -1,0 +1,9 @@
+{
+  "name": "auth-reset-password",
+  "version": "1.0.0",
+  "description": "密码重置云函数",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^2.5.0"
+  }
+}

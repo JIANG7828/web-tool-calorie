@@ -1,4 +1,4 @@
-import { Card, Space, Progress, Button, Tag, Statistic, Badge } from 'antd';
+import { Card, Progress, Button, Tag, Statistic, Badge } from 'antd';
 import { FireOutlined, FireFilled, PlusOutlined, CoffeeOutlined, CloudOutlined, ThunderboltOutlined, AppstoreOutlined, AimOutlined, CameraOutlined, StarOutlined, DeleteOutlined, CheckOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useCalorieStore } from '../store/calorieStore';
 import { formatDate } from '../utils/calorie';
@@ -54,14 +54,9 @@ export default function Home() {
 
   const [todayMealPlan, setTodayMealPlan] = useState(() => getRecipesByDate(selectedDateStr));
 
-  // Refresh meal plan when date changes or after operations
-  const refreshTodayMealPlan = () => {
-    setTodayMealPlan(getRecipesByDate(selectedDateStr));
-  };
-
   // Auto refresh when date changes
   useEffect(() => {
-    refreshTodayMealPlan();
+    setTodayMealPlan(getRecipesByDate(selectedDateStr));
   }, [selectedDateStr]);
 
   const dateRecords = getRecordsByDate(selectedDateStr);
@@ -184,7 +179,7 @@ export default function Home() {
             </p>
 
             {/* Macro Progress */}
-            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
               {macroConfig.map((macro) => {
                 const value = macros[macro.key] || 0;
                 const pct = Math.min((value / macro.target) * 100, 100);
@@ -206,7 +201,7 @@ export default function Home() {
                   </div>
                 );
               })}
-            </Space>
+            </div>
           </div>
 
           {/* Circular Progress */}
@@ -315,7 +310,7 @@ export default function Home() {
                 今日暂无定制餐单
               </p>
             ) : (
-              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
                 {todayMealPlan.map((recipe) => (
                   <Card key={recipe.id} size="small" style={{ borderRadius: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -360,7 +355,7 @@ export default function Home() {
                             },
                             timestamp: Date.now(),
                           });
-                          refreshTodayMealPlan();
+                          setTodayMealPlan(getRecipesByDate(selectedDateStr));
                         }}
                       >
                         添加到记录
@@ -376,7 +371,7 @@ export default function Home() {
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteMealPlanByDate(selectedDateStr);
-                      refreshTodayMealPlan();
+                      setTodayMealPlan(getRecipesByDate(selectedDateStr));
                     }}
                   >
                     删除今日餐单
@@ -394,7 +389,7 @@ export default function Home() {
                     定制更多
                   </Button>
                 </div>
-              </Space>
+              </div>
             )}
           </div>
         )}

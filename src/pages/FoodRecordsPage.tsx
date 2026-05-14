@@ -114,7 +114,7 @@ export default function FoodRecordsPage() {
           style={{ marginTop: '40px' }}
         />
       ) : (
-        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
           {filteredRecords.map((record) => {
             const mealTypeConfig = MEAL_TYPES.find((m) => m.key === record.mealType);
             return (
@@ -163,7 +163,7 @@ export default function FoodRecordsPage() {
               </Card>
             );
           })}
-        </Space>
+        </div>
       )}
     </div>
   );

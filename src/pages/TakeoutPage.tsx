@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useCalorieStore } from '../store/calorieStore';
 import {
   RECIPES,
@@ -8,7 +8,7 @@ import {
   Recipe,
 } from '../utils/recipeData';
 import { generateRecipeRecommendations, AIRecipeRecommendation, UserProfile } from '../utils/aiSuggestion';
-import { Card, Tabs, Tag, Space, Button, Modal, Descriptions, Typography, Input, Empty, Spin, Divider, Calendar, Badge, Segmented, DatePicker, App } from 'antd';
+import { Card, Tabs, Tag, Button, Modal, Descriptions, Typography, Input, Empty, Spin, Divider, Calendar, Badge, Segmented, DatePicker, App } from 'antd';
 import type { BadgeProps } from 'antd';
 import {
   RobotOutlined,
@@ -146,13 +146,13 @@ export default function TakeoutPage() {
     }
   }, [todayRecords.length]);
 
-  const loadAiRecommendations = async () => {
+  const loadAiRecommendations = useCallback(async () => {
     if (hasEvaluatedRef.current) return;
     if (todayRecords.length === 0) return;
 
     setAiLoading(true);
     try {
-      const profile: UserProfile = {
+      const profile = {
         target: userTarget,
         targetCal,
         currentCal: totalCal,
@@ -171,11 +171,11 @@ export default function TakeoutPage() {
     } finally {
       setAiLoading(false);
     }
-  };
+  }, [userTarget, totalCal, exerciseCal, weight, userSettings.height, userSettings.age, userSettings.gender, todayRecords]);
 
   useEffect(() => {
     loadAiRecommendations();
-  }, [todayRecords.length]);
+  }, [todayRecords.length, loadAiRecommendations]);
 
   const getTargetLabel = () => {
     const labels: Record<string, string> = { fat: '减脂', keep: '维持', muscle: '增肌' };
@@ -413,7 +413,7 @@ export default function TakeoutPage() {
       <div style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <Title level={4} style={{ margin: 0, color: '#333' }}>定制餐单</Title>
-          <Space>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <Button
               type="default"
               size="small"
@@ -437,7 +437,7 @@ export default function TakeoutPage() {
               icon={<CloseOutlined />}
               onClick={() => setShowMealPlan(false)}
             />
-          </Space>
+          </div>
         </div>
 
         <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -530,18 +530,18 @@ export default function TakeoutPage() {
         style={{ borderRadius: '8px' }}
         onClick={() => setSelectedRecipe(recipe)}
       >
-        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <Text strong style={{ fontSize: '15px' }}>{recipe.name}</Text>
             <Tag color={recipe.category === 'chinese' ? 'orange' : 'blue'} style={{ fontSize: '10px' }}>
               {recipe.category === 'chinese' ? '中餐' : '轻食'}
             </Tag>
-          </Space>
+          </div>
           <Text style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>
             {recipe.description}
           </Text>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Space size={8}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Tag style={{ fontSize: '10px' }}>
                 {recipe.mealType === 'breakfast' ? '早餐' : recipe.mealType === 'lunch' ? '午餐' : '晚餐'}
               </Tag>
@@ -551,7 +551,7 @@ export default function TakeoutPage() {
               <Tag style={{ fontSize: '10px' }}>
                 <FireOutlined /> {recipe.calorie}千卡
               </Tag>
-            </Space>
+            </div>
             {showAddButton && (
               <Button
                 type="primary"
@@ -567,7 +567,7 @@ export default function TakeoutPage() {
               </Button>
             )}
           </div>
-        </Space>
+        </div>
       </Card>
     );
   };
@@ -584,7 +584,7 @@ export default function TakeoutPage() {
       <div style={{ padding: '16px 20px', background: '#FFF', borderBottom: '1px solid #F0F0F0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Title level={4} style={{ margin: 0, color: '#333' }}>推荐菜谱</Title>
-          <Space>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <Button
               type="default"
               size="small"
@@ -602,7 +602,7 @@ export default function TakeoutPage() {
             >
               定制餐单
             </Button>
-          </Space>
+          </div>
         </div>
 
         <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
@@ -665,15 +665,15 @@ export default function TakeoutPage() {
               marginBottom: '16px',
             }}
           >
-            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-              <Space>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <RobotOutlined style={{ fontSize: '18px', color: '#52C41A' }} />
                 <Text strong>AI 智能推荐</Text>
-              </Space>
+              </div>
               <Text style={{ fontSize: '13px', color: '#389E0D', lineHeight: '1.6' }}>
                 {aiRecommendations.analysis}
               </Text>
-              <Space size={8} wrap>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {aiRecommendations.recipes.slice(0, 3).map((recipe) => (
                   <Tag
                     key={recipe.id}
@@ -687,8 +687,8 @@ export default function TakeoutPage() {
                     {recipe.name}
                   </Tag>
                 ))}
-              </Space>
-            </Space>
+              </div>
+            </div>
           </Card>
         )}
 
@@ -704,22 +704,22 @@ export default function TakeoutPage() {
             <Empty description="暂无相关菜谱" />
           </Card>
         ) : (
-          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
             {filteredRecipes.map((recipe) => renderRecipeCard(recipe, true))}
-          </Space>
+          </div>
         )}
 
         {!searchTerm && targetRecipes.length > 0 && (
           <>
             <Divider>
-              <Space>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <BulbOutlined style={{ color: '#FAAD14' }} />
                 <Text style={{ color: '#666', fontSize: '12px' }}>适合你的{getTargetLabel()}菜谱</Text>
-              </Space>
+              </div>
             </Divider>
-            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
               {targetRecipes.slice(0, 3).map((recipe) => renderRecipeCard(recipe, true))}
-            </Space>
+            </div>
           </>
         )}
       </div>
@@ -756,11 +756,11 @@ export default function TakeoutPage() {
             <div style={{ padding: '20px' }}>
               <Descriptions column={1} size="middle">
                 <Descriptions.Item label="营养成分">
-                  <Space size={16}>
+                  <div style={{ display: 'flex', gap: '16px' }}>
                     <span>蛋白质 <Text strong>{selectedRecipe.protein}g</Text></span>
                     <span>脂肪 <Text strong>{selectedRecipe.fat}g</Text></span>
                     <span>碳水 <Text strong>{selectedRecipe.carbs}g</Text></span>
-                  </Space>
+                  </div>
                 </Descriptions.Item>
                 <Descriptions.Item label="制作方法">
                   <div style={{

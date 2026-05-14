@@ -1,4 +1,4 @@
-import { Space, Tag, Button, Modal, Avatar, message } from 'antd';
+import { Tag, Button, Modal, Avatar, message } from 'antd';
 import { CloseOutlined, CheckOutlined, SearchOutlined, PlusCircleOutlined, ArrowLeftOutlined, ArrowUpOutlined, CameraOutlined } from '@ant-design/icons';
 import { useState, useRef, useEffect } from 'react';
 import { useCalorieStore } from '../store/calorieStore';
@@ -235,7 +235,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
     return sum + Math.round(((food.calorie || 0) * portion) / 100);
   }, 0);
 
-  const renderFoodItem = (food: Food) => {
+  const renderFoodItem = (food: Food, key: string) => {
     if (!food || !food.name) return null;
     const isSelected = selectedFoods.has(food.id);
     const itemData = selectedFoods.get(food.id);
@@ -248,7 +248,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
 
     return (
       <div
-        key={food.id}
+        key={key}
         onClick={() => toggleFood(food)}
         style={{
           display: 'flex', alignItems: 'center', gap: '12px',
@@ -362,7 +362,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
           </div>
 
           {/* Meal Type */}
-          <Space size={8} style={{ marginBottom: '12px' }} wrap>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
             {MEAL_TYPES.map((t) => (
               <Button
                 key={t.key}
@@ -374,7 +374,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
                 {t.label}
               </Button>
             ))}
-          </Space>
+          </div>
 
           {/* Add Button */}
           <Button
@@ -457,7 +457,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
           >
             {searchTerm ? (
               foods.length > 0 ? (
-                foods.slice(0, 50).map(food => renderFoodItem(food))
+                foods.slice(0, 50).map((food, idx) => renderFoodItem(food, `search-${idx}-${food.id}`))
               ) : (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
                   <p style={{ fontSize: '14px' }}>未找到相关食物</p>
@@ -484,7 +484,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
                         }}>
                           {cat.label} <span style={{ fontSize: '12px', fontWeight: 400, color: '#999' }}>({catFoods.length})</span>
                         </div>
-                        {catFoods.map(food => renderFoodItem(food))}
+                        {catFoods.map((food, idx) => renderFoodItem(food, `${cat.key}-${idx}-${food.id}`))}
                       </div>
                     );
                   }).filter(Boolean)
@@ -502,7 +502,7 @@ export default function AddFoodModal({ isOpen, onClose, defaultMealType }: AddFo
                     }}>
                       {CATEGORIES.find(c => c.key === activeCategory)?.label} <span style={{ fontSize: '12px', fontWeight: 400, color: '#999' }}>({foods.length})</span>
                     </div>
-                    {foods.map(food => renderFoodItem(food))}
+                    {foods.map((food, idx) => renderFoodItem(food, `${activeCategory}-${idx}-${food.id}`))}
                   </div>
                 )
             )}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FOOD_DATABASE, Food, FOOD_CATEGORIES } from '../utils/foodDatabase';
 import FoodIcons from '../components/FoodIcons';
-import { Input, Space, Typography, Card, Tag, Button, List, Avatar } from 'antd';
+import { Input, Typography, Card, Tag, Button, List, Avatar } from 'antd';
 import { SearchOutlined, FireOutlined, ArrowLeftOutlined, PlusCircleOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -106,7 +106,7 @@ export default function FoodDatabasePage() {
 
       {/* Category Tags */}
       <div style={{ padding: '12px 20px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
-        <Space wrap size={8}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {['全部', ...FOOD_CATEGORIES].map((category) => (
             <Button
               key={category}
@@ -122,7 +122,7 @@ export default function FoodDatabasePage() {
               {category}
             </Button>
           ))}
-        </Space>
+        </div>
       </div>
 
       {/* Food List */}
@@ -149,9 +149,9 @@ export default function FoodDatabasePage() {
                   }}
                   styles={{ body: { padding: '12px 16px' } }}
                 >
-                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     {/* Left: Icon + Name */}
-                    <Space>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                       <Avatar
                         shape="square"
                         size={48}
@@ -166,17 +166,17 @@ export default function FoodDatabasePage() {
                         {iconSvg}
                       </Avatar>
                       <div>
-                        <Space size={4}>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                           {isLowCal && (
                             <Tag color="green" style={{ fontSize: '10px', margin: 0 }}>低Gi</Tag>
                           )}
                           <Text strong style={{ fontSize: '14px' }}>{food.name}</Text>
-                        </Space>
+                        </div>
                         <Text style={{ color: '#8BC34A', fontSize: '12px' }}>
                           {food.calorie} 千卡/{food.unit}
                         </Text>
                       </div>
-                    </Space>
+                    </div>
 
                     {/* Right: Add Button */}
                     <Button
@@ -185,7 +185,7 @@ export default function FoodDatabasePage() {
                       icon={<PlusCircleOutlined style={{ fontSize: '20px', color: '#C8E6C9' }} />}
                       style={{ padding: 0 }}
                     />
-                  </Space>
+                  </div>
                 </Card>
               );
             }}

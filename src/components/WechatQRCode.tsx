@@ -80,7 +80,7 @@ export default function WechatQRCode({ mode, onSuccess, onCancel }: WechatQRCode
 
   return (
     <div style={{ textAlign: 'center' }}>
-      <Space orientation="vertical" size={20} style={{ width: '100%', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', alignItems: 'center' }}>
         <div>
           <Title level={4} style={{ margin: 0, color: '#333' }}>{config.title}</Title>
           <Text style={{ color: '#999', fontSize: '13px' }}>{config.subtitle}</Text>
@@ -221,7 +221,7 @@ export default function WechatQRCode({ mode, onSuccess, onCancel }: WechatQRCode
             返回其他方式
           </Button>
         )}
-      </Space>
+      </div>
     </div>
   );
 }

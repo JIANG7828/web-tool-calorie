@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Button, Card, message, Space, Tag } from 'antd';
+import { Button, Card, message, Tag } from 'antd';
 import { CameraOutlined, PictureOutlined, CloseOutlined, CheckOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useCalorieStore } from '../store/calorieStore';
 import { recognizeFood, getLocalCalorie, FoodRecognitionResult } from '../services/baiduFoodRecognition';
@@ -241,14 +241,14 @@ export default function FoodRecognitionPage() {
               style={{ width: '100%', borderRadius: '12px', backgroundColor: '#000' }}
             />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
-            <Space style={{ width: '100%', marginTop: '12px' }} size={12}>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '12px', width: '100%' }}>
               <Button type="primary" size="large" onClick={takePhoto} style={{ flex: 1 }}>
                 📸 拍照
               </Button>
               <Button size="large" onClick={closeCamera} style={{ flex: 1 }}>
                 取消
               </Button>
-            </Space>
+            </div>
           </div>
         ) : selectedImage ? (
           <div style={{ marginBottom: '16px' }}>
@@ -281,7 +281,7 @@ export default function FoodRecognitionPage() {
           </div>
         ) : (
           <div style={{ marginBottom: '20px' }}>
-            <Space orientation="vertical" style={{ width: '100%' }} size={16}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
               <button
                 onClick={openCamera}
                 style={{
@@ -316,7 +316,7 @@ export default function FoodRecognitionPage() {
                 onChange={handleImageSelect}
                 style={{ display: 'none' }}
               />
-            </Space>
+            </div>
           </div>
         )}
 

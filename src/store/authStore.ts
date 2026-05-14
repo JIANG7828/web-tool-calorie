@@ -59,7 +59,7 @@ export const useAuthStore = create<AuthStore>()(
       login: async (username: string, password: string) => {
         set({ isLoading: true });
         try {
-          const result = login(username, password);
+          const result = await login(username, password);
           if (result.success) {
             set({ currentUser: result.user, isLoggedIn: true });
           }
@@ -78,7 +78,7 @@ export const useAuthStore = create<AuthStore>()(
       ) => {
         set({ isLoading: true });
         try {
-          const result = register(username, password, nickname, gender, wechatId);
+          const result = await register(username, password, nickname, gender, wechatId);
           if (result.success) {
             set({ currentUser: result.user, isLoggedIn: true });
           }
@@ -91,13 +91,19 @@ export const useAuthStore = create<AuthStore>()(
       registerWithWechat: async (wechatId: string, nickname: string, gender: 'male' | 'female') => {
         set({ isLoading: true });
         try {
-          const username = `wx_${wechatId.slice(-8)}`;
-          const randomPassword = Math.random().toString(36).slice(2, 14).toUpperCase();
-          const result = register(username, `Wx${randomPassword}`, nickname, gender, wechatId);
+          const result = await loginWithWechat(wechatId);
           if (result.success) {
             set({ currentUser: result.user, isLoggedIn: true });
+            return { success: true };
           }
-          return { success: result.success, errors: result.errors };
+
+          const username = `wx_${wechatId.slice(-8)}`;
+          const randomPassword = 'Wx' + Math.random().toString(36).slice(2, 14).toUpperCase();
+          const registerResult = await register(username, randomPassword, nickname, gender, wechatId);
+          if (registerResult.success) {
+            set({ currentUser: registerResult.user, isLoggedIn: true });
+          }
+          return { success: registerResult.success, errors: registerResult.errors };
         } finally {
           set({ isLoading: false });
         }
@@ -116,7 +122,7 @@ export const useAuthStore = create<AuthStore>()(
         
         set({ isLoading: true });
         try {
-          const result = updatePassword(currentUser.username, oldPassword, newPassword);
+          const result = await updatePassword(oldPassword, newPassword);
           if (result.success) {
             set({ currentUser: getCurrentUser() });
           }
@@ -134,7 +140,7 @@ export const useAuthStore = create<AuthStore>()(
         
         set({ isLoading: true });
         try {
-          const result = bindWechat(currentUser.username, wechatId);
+          const result = await bindWechat(wechatId);
           if (result.success) {
             set({ currentUser: getCurrentUser() });
           }
@@ -147,7 +153,7 @@ export const useAuthStore = create<AuthStore>()(
       loginWithWechat: async (wechatId: string) => {
         set({ isLoading: true });
         try {
-          const result = loginWithWechat(wechatId);
+          const result = await loginWithWechat(wechatId);
           if (result.success) {
             set({ currentUser: result.user, isLoggedIn: true });
           }
@@ -160,7 +166,7 @@ export const useAuthStore = create<AuthStore>()(
       generateResetCode: async (username: string) => {
         set({ isLoading: true });
         try {
-          const result = generateResetCode(username);
+          const result = await generateResetCode(username);
           return result;
         } finally {
           set({ isLoading: false });
@@ -170,7 +176,7 @@ export const useAuthStore = create<AuthStore>()(
       verifyResetCode: async (username: string, code: string) => {
         set({ isLoading: true });
         try {
-          const result = verifyResetCode(username, code);
+          const result = await verifyResetCode(username, code);
           return result;
         } finally {
           set({ isLoading: false });
@@ -180,8 +186,11 @@ export const useAuthStore = create<AuthStore>()(
       resetPassword: async (username: string, newPassword: string, confirmPassword: string) => {
         set({ isLoading: true });
         try {
-          const result = resetPassword(username, newPassword, confirmPassword);
-          return result;
+          const result = await resetPassword(username, newPassword, confirmPassword);
+          if (result.success) {
+            set({ currentUser: getCurrentUser(), isLoggedIn: !!getCurrentUser() });
+          }
+          return { success: result.success, error: result.error };
         } finally {
           set({ isLoading: false });
         }
@@ -190,8 +199,8 @@ export const useAuthStore = create<AuthStore>()(
       resetPasswordByWechat: async (wechatId: string, newPassword: string, confirmPassword: string) => {
         set({ isLoading: true });
         try {
-          const result = resetPasswordByWechat(wechatId, newPassword, confirmPassword);
-          return result;
+          const result = await resetPasswordByWechat(wechatId, newPassword, confirmPassword);
+          return { success: result.success, error: result.error };
         } finally {
           set({ isLoading: false });
         }

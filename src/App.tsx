@@ -71,8 +71,6 @@ function AppContent() {
         return <TakeoutPage />;
       case 'recognition':
         return <FoodRecognitionPage />;
-      case 'records':
-        return <FoodRecordsPage />;
       case 'exercise':
         return <ExercisePage />;
       case 'profile':
@@ -132,7 +130,6 @@ function AppContent() {
             {[
               { key: 'home' as TabType, icon: <HomeOutlined />, label: '首页' },
               { key: 'recipe' as TabType, icon: <BookOutlined />, label: '菜谱' },
-              { key: 'records' as TabType, icon: <FileTextOutlined />, label: '记录' },
               { key: 'recognition' as TabType, icon: <CameraOutlined />, label: '识食物' },
               { key: 'exercise' as TabType, icon: <FireOutlined />, label: '运动' },
               { key: 'profile' as TabType, icon: <UserOutlined />, label: '我的' },

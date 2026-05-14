@@ -6,7 +6,7 @@ import { calculateStreak } from '../utils/checkInSystem';
 import WeightTrendPage from './WeightTrendPage';
 import DataStatisticsPage from './DataStatisticsPage';
 import WechatQRCode from '../components/WechatQRCode';
-import { Card, Tag, Button, Modal, Typography, Input, Avatar, Space, DatePicker, Space as AntSpace, Divider, Alert, App } from 'antd';
+import { Card, Tag, Button, Modal, Typography, Input, Avatar, Space as AntSpace, Divider, Alert, App, DatePicker } from 'antd';
 import dayjs from 'dayjs';
 import {
   UserOutlined,
@@ -400,7 +400,7 @@ export default function ProfilePage() {
     <div style={{ minHeight: '100vh', background: '#F5F7FA' }}>
       <div style={{ padding: '16px 20px', background: '#FFF' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <Space>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
             <Avatar size={72} src={avatarUrl} style={{ background: '#FFF', border: '3px solid #FFE4E1' }}>
               <UserOutlined style={{ fontSize: '32px', color: userSettings.gender === 'male' ? '#1677FF' : '#FA541C' }} />
             </Avatar>
@@ -415,7 +415,7 @@ export default function ProfilePage() {
                 {getTargetLabel()}
               </Tag>
             </div>
-          </Space>
+          </div>
 
           {!isLoggedIn ? (
             <Button
@@ -660,7 +660,7 @@ export default function ProfilePage() {
 
           <div style={{ padding: '20px' }}>
             <Card style={{ borderRadius: '8px', marginBottom: '16px' }} styles={{ body: { padding: '16px' } }}>
-              <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
                 <div>
                   <Text style={{ display: 'block', marginBottom: '8px', color: '#999' }}>昵称</Text>
                   <Input
@@ -762,7 +762,7 @@ export default function ProfilePage() {
                 <Button type="primary" block size="large" onClick={() => setShowSettings(false)}>
                   保存设置
                 </Button>
-              </Space>
+              </div>
             </Card>
           </div>
         </div>
@@ -793,7 +793,7 @@ export default function ProfilePage() {
               <Alert message={loginError} type="error" showIcon closable style={{ marginBottom: '16px' }} />
             )}
 
-            <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
               <div>
                 <Text style={{ display: 'block', marginBottom: '8px', color: '#999', fontSize: '12px' }}>用户名</Text>
                 <Input
@@ -834,10 +834,10 @@ export default function ProfilePage() {
               </Button>
 
               <Divider plain>
-                <Space>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <QrcodeOutlined />
                   <Text style={{ color: '#999', fontSize: '12px' }}>其他方式</Text>
-                </Space>
+                </div>
               </Divider>
 
               <Button
@@ -870,7 +870,7 @@ export default function ProfilePage() {
                 和
                 <Button type="link" size="small" style={{ padding: '0 4px', height: 'auto' }}>隐私政策</Button>
               </Text>
-            </Space>
+            </div>
           </>
         )}
       </Modal>
@@ -899,11 +899,11 @@ export default function ProfilePage() {
             {registerErrors.length > 0 && (
               <Alert
                 message={
-                  <Space orientation="vertical" size={2}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     {registerErrors.map((err, i) => (
                       <Text key={i} style={{ fontSize: '12px' }}>{err}</Text>
                     ))}
-                  </Space>
+                  </div>
                 }
                 type="error"
                 showIcon
@@ -912,7 +912,7 @@ export default function ProfilePage() {
               />
             )}
 
-            <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
               <div>
                 <Text style={{ display: 'block', marginBottom: '8px', color: '#999', fontSize: '12px' }}>昵称</Text>
                 <Input
@@ -988,10 +988,10 @@ export default function ProfilePage() {
               </Button>
 
               <Divider plain>
-                <Space>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <QrcodeOutlined />
                   <Text style={{ color: '#999', fontSize: '12px' }}>其他方式</Text>
-                </Space>
+                </div>
               </Divider>
 
               <Button
@@ -1024,7 +1024,7 @@ export default function ProfilePage() {
                 和
                 <Button type="link" size="small" style={{ padding: '0 4px', height: 'auto' }}>隐私政策</Button>
               </Text>
-            </Space>
+            </div>
           </>
         )}
       </Modal>
@@ -1082,10 +1082,10 @@ export default function ProfilePage() {
             {forgotWechatId && forgotStep === 'wechat' && (
               <Alert
                 message={
-                  <Space>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <WechatOutlined style={{ color: '#07C160' }} />
                     <Text>身份验证成功，请设置新密码</Text>
-                  </Space>
+                  </div>
                 }
                 type="success"
                 showIcon
@@ -1093,7 +1093,7 @@ export default function ProfilePage() {
               />
             )}
 
-            <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
               {/* 步骤 1: 输入用户名 */}
               {forgotStep === 'username' && (
                 <>
@@ -1229,7 +1229,7 @@ export default function ProfilePage() {
                   返回登录
                 </Button>
               </div>
-            </Space>
+            </div>
           </>
         )}
       </Modal>

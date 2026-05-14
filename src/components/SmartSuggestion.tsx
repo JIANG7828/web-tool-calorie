@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { generateMealSuggestion, AISuggestion, getLastMealSummary, MealHistory } from '../utils/aiSuggestion';
 import { UserProfile } from '../utils/aiSuggestion';
-import { Card, Space, Tag, Typography, Button, Skeleton, Spin } from 'antd';
+import { Card, Tag, Typography, Button, Skeleton, Spin } from 'antd';
 import { CoffeeOutlined, ThunderboltOutlined, CloudOutlined, AppstoreOutlined, BulbOutlined, CloseOutlined, FireOutlined, TrophyOutlined, RobotOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -146,41 +146,41 @@ export default function SmartSuggestion({
         <Button type="text" size="small" icon={<CloseOutlined />} onClick={onClose} />
       }
     >
-      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
         {/* 餐后建议标题 */}
-        <Space>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '18px', color: '#666' }}>{MEAL_ICONS[mealTime]}</span>
           <Text strong style={{ fontSize: '16px' }}>{MEAL_NAMES[mealTime]}后建议</Text>
           <Tag color={getStatusColor()} style={{ margin: 0 }}>{getStatusText()}</Tag>
-        </Space>
+        </div>
 
         {/* AI 分析结果 */}
         {suggestion && (
           <>
             {/* 上一餐评估 */}
             <Card style={{ borderRadius: '8px', background: '#F5F7FA', border: 'none' }}>
-              <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                <Space>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <RobotOutlined style={{ color: '#1677FF' }} />
                   <Text strong>AI 分析</Text>
-                </Space>
+                </div>
                 <Text style={{ fontSize: '14px', lineHeight: '1.6', color: '#666' }}>
                   {suggestion.suggestion}
                 </Text>
-              </Space>
+              </div>
             </Card>
 
             {/* 下一餐推荐 */}
             {suggestion.nextMealRecommendation && (
               <Card style={{ borderRadius: '8px', background: getStatusBg(), border: 'none' }}>
-                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
                   <Text strong>
                     <BulbOutlined style={{ marginRight: '4px', color: '#1677FF' }} />下一餐推荐
                   </Text>
                   <Text style={{ fontSize: '14px', lineHeight: '1.6' }}>
                     {suggestion.nextMealRecommendation}
                   </Text>
-                </Space>
+                </div>
               </Card>
             )}
 
@@ -190,18 +190,18 @@ export default function SmartSuggestion({
                 <Text strong style={{ display: 'block', marginBottom: '8px' }}>
                   <TrophyOutlined style={{ marginRight: '4px', color: '#52C41A' }} />推荐食物
                 </Text>
-                <Space size={8} wrap>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {suggestion.recommendedFoods.map((food, index) => (
                     <Tag key={index} color="blue" style={{ padding: '4px 12px' }}>{food}</Tag>
                   ))}
-                </Space>
+                </div>
               </div>
             )}
 
 
           </>
         )}
-      </Space>
+      </div>
     </Card>
   );
 }

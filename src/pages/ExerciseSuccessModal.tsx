@@ -1,5 +1,5 @@
 import { ExerciseRecord } from '../store/calorieStore';
-import { Modal, Typography, Statistic, Space, Button, Avatar, Card } from 'antd';
+import { Modal, Typography, Statistic, Button, Avatar, Card } from 'antd';
 import { TrophyOutlined, ThunderboltOutlined, ClockCircleOutlined, FireOutlined, CheckOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -56,7 +56,7 @@ export default function ExerciseSuccessModal({ exercise, onClose }: ExerciseSucc
           style={{ borderRadius: '8px', background: '#FFF7E6', border: 'none', marginTop: '24px' }}
           styles={{ body: { padding: '16px' } }}
         >
-          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text>运动项目</Text>
               <Text strong>{exercise.name}</Text>
@@ -69,7 +69,7 @@ export default function ExerciseSuccessModal({ exercise, onClose }: ExerciseSucc
               <Text><FireOutlined style={{ marginRight: '4px' }} />消耗热量</Text>
               <Text strong type="warning">{exercise.calorie} 千卡</Text>
             </div>
-          </Space>
+          </div>
         </Card>
 
         <Button type="primary" block size="large" icon={<CheckOutlined />} onClick={onClose} style={{ marginTop: '24px' }}>

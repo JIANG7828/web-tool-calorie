@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCalorieStore } from '../store/calorieStore';
-import { Card, Space, Typography, Button, Input, Modal, Statistic } from 'antd';
+import { Card, Typography, Button, Input, Modal, Statistic } from 'antd';
 import {
   ArrowLeftOutlined,
   PlusOutlined,
@@ -228,7 +228,7 @@ export default function WeightTrendPage({ onBack }: WeightTrendPageProps) {
 
         {weightRecords.length > 0 && (
           <Card title="近期记录" styles={{ body: { padding: '12px' } }} style={{ borderRadius: '8px', marginBottom: '16px' }}>
-            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
               {weightRecords.slice(0, 7).map((record, index) => {
                 const prevWeight = weightRecords[index + 1]?.weight;
                 const diff = prevWeight !== undefined ? ((record.weight - prevWeight) * 2).toFixed(1) : null;
@@ -267,7 +267,7 @@ export default function WeightTrendPage({ onBack }: WeightTrendPageProps) {
                   </div>
                 );
               })}
-            </Space>
+            </div>
           </Card>
         )}
 
@@ -298,7 +298,7 @@ export default function WeightTrendPage({ onBack }: WeightTrendPageProps) {
         footer={null}
         styles={{ body: { padding: '16px' } }}
       >
-        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
           <Title level={4} style={{ margin: 0 }}>记录体重</Title>
 
           <Input
@@ -322,7 +322,7 @@ export default function WeightTrendPage({ onBack }: WeightTrendPageProps) {
           <Button type="primary" block size="large" onClick={handleAddWeight}>
             保存
           </Button>
-        </Space>
+        </div>
       </Modal>
     </div>
   );

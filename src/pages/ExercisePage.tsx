@@ -3,7 +3,7 @@ import { useCalorieStore } from '../store/calorieStore';
 import { calcSportCal } from '../utils/calorie';
 import { DAILY_ACTIVITIES, SPORT_ACTIVITIES } from '../utils/activities';
 import ExerciseSuccessModal from './ExerciseSuccessModal';
-import { Card, Space, Typography, Button, Modal, Slider, Statistic, Avatar, Input } from 'antd';
+import { Card, Typography, Button, Modal, Slider, Statistic, Avatar, Input } from 'antd';
 import {
   FireOutlined,
   CloseOutlined,
@@ -66,7 +66,7 @@ function ActivityModal({ isOpen, onClose, activity, onAdd }: ActivityModalProps)
       closeIcon={<CloseOutlined />}
       styles={{ body: { padding: '16px' } }}
     >
-      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
         <Title level={4} style={{ margin: 0 }}>{activity.name}</Title>
 
         <Card style={{ borderRadius: '8px', background: '#F5F7FA', border: 'none', textAlign: 'center' }}>
@@ -110,7 +110,7 @@ function ActivityModal({ isOpen, onClose, activity, onAdd }: ActivityModalProps)
         <Button type="primary" block size="large" icon={<CheckOutlined />} onClick={() => { onAdd(duration); onClose(); }}>
           确认添加
         </Button>
-      </Space>
+      </div>
     </Modal>
   );
 }
@@ -166,7 +166,7 @@ export default function ExercisePage() {
         onClick={() => handleActivityClick(activity)}
         style={{ borderRadius: '12px', background: '#FFF', border: '1px solid #F0F0F0' }}
       >
-        <Space style={{ width: '100%' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '100%' }}>
           <Avatar
             shape="square"
             size={48}
@@ -186,7 +186,7 @@ export default function ExercisePage() {
               {Math.round(calcSportCal(activity.met, 60, 60))}千卡/60分钟
             </Text>
           </div>
-        </Space>
+        </div>
       </Card>
     );
   };
@@ -216,16 +216,16 @@ export default function ExercisePage() {
       </div>
 
       {/* Content */}
-      <Space orientation="vertical" size={16} style={{ width: '100%', padding: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', padding: '16px' }}>
         {/* Daily Activities */}
         {filteredDaily.length > 0 && (
           <div>
             <Title level={5} style={{ marginBottom: '12px' }}>
               <BulbOutlined style={{ marginRight: '8px', color: '#FA8C16' }} />日常活动
             </Title>
-            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
               {filteredDaily.map((activity) => renderActivityCard(activity, '#FFF7E6', '#FA8C16'))}
-            </Space>
+            </div>
           </div>
         )}
 
@@ -235,16 +235,16 @@ export default function ExercisePage() {
             <Title level={5} style={{ marginBottom: '12px' }}>
               <ThunderboltOutlined style={{ marginRight: '8px', color: '#1677FF' }} />体育运动
             </Title>
-            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
               {filteredSports.map((activity) => renderActivityCard(activity, '#F0F5FF', '#1677FF'))}
-            </Space>
+            </div>
           </div>
         )}
 
         {/* Today's Exercises */}
         {todayExercises.length > 0 && (
           <Card title="今日运动记录" styles={{ body: { padding: '16px' } }} style={{ borderRadius: '8px' }}>
-            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
               {todayExercises.map((ex) => {
                 const iconKey = getSportIconKey(ex.name);
                 const iconSvg = SportsIcons[iconKey as keyof typeof SportsIcons] || SportsIcons.walk;
@@ -255,8 +255,8 @@ export default function ExercisePage() {
                     styles={{ body: { padding: '12px 16px' } }}
                     style={{ borderRadius: '8px' }}
                   >
-                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                      <Space>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <Avatar
                           shape="square"
                           size={40}
@@ -276,8 +276,8 @@ export default function ExercisePage() {
                             <ClockCircleOutlined style={{ marginRight: '4px' }} />{ex.duration} 分钟
                           </Text>
                         </div>
-                      </Space>
-                      <Space>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <Text type="warning" strong>{ex.calorie} 千卡</Text>
                         <Button
                           type="text"
@@ -286,15 +286,15 @@ export default function ExercisePage() {
                           icon={<DeleteOutlined />}
                           onClick={() => removeExerciseRecord(ex.id)}
                         />
-                      </Space>
-                    </Space>
+                      </div>
+                    </div>
                   </Card>
                 );
               })}
-            </Space>
+            </div>
           </Card>
         )}
-      </Space>
+      </div>
 
       {/* Activity Modal */}
       {showModal && selectedActivity && (

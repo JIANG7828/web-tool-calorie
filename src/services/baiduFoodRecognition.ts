@@ -5,6 +5,9 @@
 const API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
 const API_KEY = import.meta.env.VITE_TONGYI_API_KEY;
 
+// API 可用性缓存
+let visionApiAvailable: boolean | null = null;
+
 export interface FoodRecognitionResult {
   name: string;
   calorie: number;
@@ -55,6 +58,13 @@ async function tryVisionRecognition(base64Image: string): Promise<FoodRecognitio
     throw new Error('API 密钥未配置');
   }
 
+  if (visionApiAvailable === false) {
+    throw new Error('视觉 API 不可用');
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
@@ -85,10 +95,20 @@ async function tryVisionRecognition(base64Image: string): Promise<FoodRecognitio
       temperature: 0.1,
       max_tokens: 512,
     }),
+    signal: controller.signal,
   });
 
+  clearTimeout(timeoutId);
+
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      visionApiAvailable = false;
+    }
     return [];
+  }
+
+  if (visionApiAvailable === null) {
+    visionApiAvailable = true;
   }
 
   const data = await response.json();

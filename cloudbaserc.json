@@ -1,0 +1,55 @@
+{
+  "envId": "${CLOUDBASE_ENV_ID}",
+  "region": "ap-shanghai",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "functionRoot": "cloudfunctions/",
+  "framework": {
+    "name": "health-app",
+    "plugins": {
+      "auth-register": {
+        "use": "@cloudbase/framework-plugin-function",
+        "inputs": {
+          "name": "auth-register",
+          "handler": "index.main",
+          "runtime": "Nodejs18.15",
+          "installDependency": true,
+          "functionSecretId": "${FUNCTION_SECRET_ID}",
+          "functionSecretKey": "${FUNCTION_SECRET_KEY}",
+          "environmentVariables": {
+            "JWT_SECRET": "${JWT_SECRET}",
+            "JWT_EXPIRE_HOURS": "168"
+          }
+        }
+      },
+      "auth-login": {
+        "use": "@cloudbase/framework-plugin-function",
+        "inputs": {
+          "name": "auth-login",
+          "handler": "index.main",
+          "runtime": "Nodejs18.15",
+          "installDependency": true,
+          "functionSecretId": "${FUNCTION_SECRET_ID}",
+          "functionSecretKey": "${FUNCTION_SECRET_KEY}",
+          "environmentVariables": {
+            "JWT_SECRET": "${JWT_SECRET}",
+            "JWT_EXPIRE_HOURS": "168"
+          }
+        }
+      },
+      "auth-reset-password": {
+        "use": "@cloudbase/framework-plugin-function",
+        "inputs": {
+          "name": "auth-reset-password",
+          "handler": "index.main",
+          "runtime": "Nodejs18.15",
+          "installDependency": true,
+          "functionSecretId": "${FUNCTION_SECRET_ID}",
+          "functionSecretKey": "${FUNCTION_SECRET_KEY}",
+          "environmentVariables": {
+            "JWT_SECRET": "${JWT_SECRET}"
+          }
+        }
+      }
+    }
+  }
+}
