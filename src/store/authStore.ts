@@ -21,6 +21,29 @@ import {
   resetPasswordByWechat,
 } from '../services/authService';
 
+/**
+ * 迁移旧数据到新用户存储
+ * 当用户登录时，将 default store 的数据迁移到用户专属 store
+ */
+function migrateDataToUser(userId: string): void {
+  try {
+    const oldKey = 'calorie-store-default';
+    const newKey = `calorie-store-${userId}`;
+
+    // 如果新用户store已有数据，不需要迁移
+    if (localStorage.getItem(newKey)) return;
+
+    const oldData = localStorage.getItem(oldKey);
+    if (!oldData) return;
+
+    // 迁移数据到新store
+    localStorage.setItem(newKey, oldData);
+    console.log('[数据迁移] 已从默认存储迁移到用户存储:', userId);
+  } catch (e) {
+    console.error('[数据迁移] 失败:', e);
+  }
+}
+
 export interface AuthState {
   currentUser: UserProfile | null;
   isLoggedIn: boolean;
@@ -60,7 +83,9 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         try {
           const result = await login(username, password);
-          if (result.success) {
+          if (result.success && result.user) {
+            // 迁移旧数据到用户存储
+            migrateDataToUser(result.user.id);
             set({ currentUser: result.user, isLoggedIn: true });
           }
           return { success: result.success, error: result.error };
@@ -79,7 +104,9 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         try {
           const result = await register(username, password, nickname, gender, wechatId);
-          if (result.success) {
+          if (result.success && result.user) {
+            // 迁移旧数据到用户存储
+            migrateDataToUser(result.user.id);
             set({ currentUser: result.user, isLoggedIn: true });
           }
           return { success: result.success, errors: result.errors };
@@ -93,6 +120,7 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const result = await loginWithWechat(wechatId);
           if (result.success) {
+            if (result.user) migrateDataToUser(result.user.id);
             set({ currentUser: result.user, isLoggedIn: true });
             return { success: true };
           }
@@ -100,7 +128,9 @@ export const useAuthStore = create<AuthStore>()(
           const username = `wx_${wechatId.slice(-8)}`;
           const randomPassword = 'Wx' + Math.random().toString(36).slice(2, 14).toUpperCase();
           const registerResult = await register(username, randomPassword, nickname, gender, wechatId);
-          if (registerResult.success) {
+          if (registerResult.success && registerResult.user) {
+            // 迁移旧数据到用户存储
+            migrateDataToUser(registerResult.user.id);
             set({ currentUser: registerResult.user, isLoggedIn: true });
           }
           return { success: registerResult.success, errors: registerResult.errors };
@@ -154,7 +184,9 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         try {
           const result = await loginWithWechat(wechatId);
-          if (result.success) {
+          if (result.success && result.user) {
+            // 迁移旧数据到用户存储
+            migrateDataToUser(result.user.id);
             set({ currentUser: result.user, isLoggedIn: true });
           }
           return { success: result.success, error: result.error };
