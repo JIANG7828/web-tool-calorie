@@ -1,0 +1,40 @@
+{
+  "envId": "vehicle-app-d1gsqheo6a1c88106",
+  "region": "ap-shanghai",
+  "functionRoot": "cloudfunctions/",
+  "functions": [
+    {
+      "name": "health-auth-register",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "envVariables": {
+        "JWT_SECRET": "health_app_jwt_secret_key_2025_change_me",
+        "JWT_EXPIRE_HOURS": "168"
+      }
+    },
+    {
+      "name": "health-auth-login",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "envVariables": {
+        "JWT_SECRET": "health_app_jwt_secret_key_2025_change_me",
+        "JWT_EXPIRE_HOURS": "168"
+      }
+    },
+    {
+      "name": "health-auth-reset-password",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "envVariables": {
+        "JWT_SECRET": "health_app_jwt_secret_key_2025_change_me"
+      }
+    }
+  ],
+  "app": {
+    "serviceName": "health-calorie",
+    "framework": "static",
+    "buildCommand": "",
+    "outputDir": "dist",
+    "deployPath": "/health/"
+  }
+}

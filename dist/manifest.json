@@ -1,0 +1,22 @@
+{
+  "name": "calorie-manager",
+  "short_name": "卡路里管理",
+  "description": "极简热量追踪工具，支持饮食记录、运动消耗、BMR/TDEE计算",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4CAF50",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "domain": "vehicle-app-d1gsqheo6a1c88106-1433036900.tcloudbaseapp.com",
+  "routes": [
+    {
+      "path": "/*",
+      "upstreamResourceType": "WEB_SCF",
+      "upstreamResourceName": "hosting"
+    }
+  ]
+}

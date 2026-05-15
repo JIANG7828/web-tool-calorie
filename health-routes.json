@@ -1,0 +1,20 @@
+{
+  "domain": "vehicle-app-d1gsqheo6a1c88106-1433036900.tcloudbaseapp.com",
+  "routes": [
+    {
+      "path": "/health/api/auth-register",
+      "upstreamResourceType": "SCF",
+      "upstreamResourceName": "health-auth-register"
+    },
+    {
+      "path": "/health/api/auth-login",
+      "upstreamResourceType": "SCF",
+      "upstreamResourceName": "health-auth-login"
+    },
+    {
+      "path": "/health/api/auth-reset-password",
+      "upstreamResourceType": "SCF",
+      "upstreamResourceName": "health-auth-reset-password"
+    }
+  ]
+}

@@ -29,5 +29,12 @@
         "JWT_SECRET": "health_app_jwt_secret_key_2025_change_me"
       }
     }
-  ]
+  ],
+  "app": {
+    "serviceName": "vehicle-root",
+    "framework": "static",
+    "installCommand": "echo no install needed",
+    "buildCommand": "",
+    "outputDir": "dist"
+  }
 }
