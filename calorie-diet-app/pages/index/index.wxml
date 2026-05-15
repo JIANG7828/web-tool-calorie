@@ -1,11 +1,35 @@
 <view class="container">
+  <!-- Header Greeting -->
+  <view class="greeting">
+    <text class="greeting-text" wx:if="{{nickname}}">你好，{{nickname}}</text>
+    <text class="greeting-text" wx:else>你好</text>
+    <text class="streak-badge" wx:if="{{streak > 0}}">🔥 {{streak}}天</text>
+  </view>
+
+  <!-- Calorie Ring -->
   <view class="header-card">
     <view class="calorie-ring-container">
-      <canvas canvas-id="calorieRing" id="calorieRing" class="calorie-ring"></canvas>
+      <canvas type="2d" id="calorieRing" class="calorie-ring"></canvas>
       <view class="calorie-center">
         <text class="calorie-number {{isOverGoal ? 'over-goal' : ''}}">{{todayTotal}}</text>
         <text class="calorie-unit">千卡</text>
         <text class="calorie-goal">目标 {{goal}}</text>
+      </view>
+    </view>
+
+    <!-- Macros -->
+    <view class="macro-row">
+      <view class="macro-chip protein">
+        <text class="macro-val">{{macros.protein}}g</text>
+        <text class="macro-name">蛋白质</text>
+      </view>
+      <view class="macro-chip fat">
+        <text class="macro-val">{{macros.fat}}g</text>
+        <text class="macro-name">脂肪</text>
+      </view>
+      <view class="macro-chip carbs">
+        <text class="macro-val">{{macros.carbs}}g</text>
+        <text class="macro-name">碳水</text>
       </view>
     </view>
 
@@ -16,12 +40,56 @@
       </view>
       <view class="stat-divider"></view>
       <view class="stat-item">
+        <text class="stat-value">{{exerciseCalories}}</text>
+        <text class="stat-label">运动消耗</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
         <text class="stat-value">{{percentage}}%</text>
         <text class="stat-label">完成</text>
       </view>
     </view>
   </view>
 
+  <!-- Water Intake -->
+  <view class="water-card">
+    <view class="water-header">
+      <text class="water-title">💧 饮水记录</text>
+      <text class="water-count">{{waterCount}}/{{waterGoal}} 杯</text>
+    </view>
+    <view class="water-progress-bar">
+      <view class="water-fill" style="width: {{waterCount >= waterGoal ? 100 : (waterCount / waterGoal * 100)}}%"></view>
+    </view>
+    <view class="water-grid">
+      <view wx:for="{{[0,1,2,3,4,5,6,7]}}" wx:key="{{item}}" class="water-dot {{item < waterCount ? 'filled' : ''}}" bindtap="addWater" data-index="{{item}}">
+        <text wx:if="{{item < waterCount}}">💧</text>
+        <text wx:else>○</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- AI Suggestion -->
+  <view class="ai-card" wx:if="{{aiSuggestion}}">
+    <view class="ai-header">
+      <text class="ai-title">🤖 AI 智能建议</text>
+    </view>
+    <text class="ai-suggestion">{{aiSuggestion.suggestion}}</text>
+    <text class="ai-meal-rec">{{aiSuggestion.nextMealRecommendation}}</text>
+    <view wx:if="{{aiSuggestion.recommendedFoods && aiSuggestion.recommendedFoods.length > 0}}" class="ai-foods">
+      <text class="ai-foods-label">推荐食物：</text>
+      <text class="ai-food-item" wx:for="{{aiSuggestion.recommendedFoods}}" wx:key="{{index}}" wx:for-item="food">{{food}} </text>
+    </view>
+    <view wx:if="{{aiSuggestion.exerciseTips && aiSuggestion.exerciseTips.length > 0}}" class="ai-exercise">
+      <text class="ai-exercise-label">运动建议：</text>
+      <text class="ai-exercise-item" wx:for="{{aiSuggestion.exerciseTips}}" wx:key="{{index}}" wx:for-item="tip">{{tip}} </text>
+    </view>
+  </view>
+
+  <view class="ai-card ai-loading" wx:elif="{{aiLoading}}">
+    <text class="ai-loading-text">🤖 AI 正在生成建议...</text>
+  </view>
+
+  <!-- Quick Add -->
   <view class="quick-add-section">
     <text class="section-title">快速添加</text>
     <view class="meal-buttons">
@@ -48,6 +116,7 @@
     </view>
   </view>
 
+  <!-- Records -->
   <view class="records-section">
     <view class="section-header">
       <text class="section-title">今日记录</text>
@@ -70,7 +139,8 @@
             <view wx:for="{{groupedRecords[item]}}" wx:key="{{item.id}}" class="record-item">
               <view class="record-info">
                 <text class="record-name">{{item.foodName}}</text>
-                <text class="record-detail">{{item.portion}}{{item.portionUnit}} · {{item.calorie}}千卡</text>
+                <text class="record-detail" wx:if="{{item.macro}}">蛋{{item.macro.protein}}g 脂{{item.macro.fat}}g 碳{{item.macro.carbs}}g</text>
+                <text class="record-detail" wx:else>{{item.portion}}{{item.portionUnit}} · {{item.calorie}}千卡</text>
               </view>
               <text class="record-time">{{format.formatTime(item.createdAt)}}</text>
               <view class="delete-btn" data-id="{{item.id}}" bindtap="deleteRecord">

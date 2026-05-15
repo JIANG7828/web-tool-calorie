@@ -1,0 +1,86 @@
+<view class="container">
+  <!-- Header -->
+  <view class="header-card">
+    <text class="header-title">📷 AI 食物识别</text>
+    <text class="header-desc">拍照或选择图片，AI 自动识别食物并计算热量</text>
+  </view>
+
+  <!-- Image Area -->
+  <view wx:if="{{!imageTempPath}}" class="upload-area" bindtap="chooseImage">
+    <text class="upload-icon">📸</text>
+    <text class="upload-text">点击拍照或选择图片</text>
+  </view>
+
+  <view wx:else class="image-preview">
+    <image class="preview-img" src="{{imageTempPath}}" mode="aspectFit" />
+    <view class="image-actions">
+      <button class="action-btn retake-btn" bindtap="chooseImage">重新拍照</button>
+      <button class="action-btn clear-btn" bindtap="clearImage">清除</button>
+    </view>
+  </view>
+
+  <!-- Loading -->
+  <view wx:if="{{loading}}" class="loading-area">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">AI 识别中...</text>
+  </view>
+
+  <!-- Recognition Results -->
+  <view wx:if="{{recognizeResults.length > 0 && !loading}}" class="results-section">
+    <view class="section-title">识别结果</view>
+
+    <view class="result-list">
+      <view wx:for="{{recognizeResults}}" wx:key="{{index}}" class="result-item {{selectedResult === item ? 'selected' : ''}}" data-item="{{item}}" bindtap="onSelectResult">
+        <view class="result-left">
+          <text class="result-name">{{item.name}}</text>
+          <text class="result-detail">{{item.calorie}}千卡/100g</text>
+        </view>
+        <text class="result-prob">{{item.probability}}%</text>
+      </view>
+    </view>
+
+    <!-- Portion Selector -->
+    <view wx:if="{{selectedResult}}" class="portion-section">
+      <view class="section-title">选择份量</view>
+
+      <view class="portion-grid">
+        <view wx:for="{{portionOptions}}" wx:key="{{item.value}}" class="portion-tag {{selectedWeight === item.value ? 'active' : ''}}" data-index="{{index}}" bindchange="onWeightChange">
+          <radio value="{{item.value}}" checked="{{selectedWeight === item.value}}" color="#4CAF50" />
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+
+      <view class="custom-weight">
+        <text class="input-label">自定义(g)</text>
+        <input class="weight-input" type="number" value="{{selectedWeight}}" bindinput="onCustomWeightInput" />
+      </view>
+
+      <view class="cal-summary">
+        <text class="cal-label">热量估算</text>
+        <text class="cal-value">{{selectedResult ? (selectedResult.calorie * selectedWeight / 100 | Math.round) : 0}}</text>
+        <text class="cal-unit">千卡</text>
+      </view>
+
+      <button class="add-record-btn" bindtap="addToRecord">添加到记录</button>
+    </view>
+  </view>
+
+  <!-- Empty State -->
+  <view wx:if="{{!imageTempPath && !loading}}" class="tips-section">
+    <view class="section-title">使用提示</view>
+    <view class="tip-list">
+      <view class="tip-item">
+        <text class="tip-icon">🍜</text>
+        <text class="tip-text">尽量拍摄完整食物画面</text>
+      </view>
+      <view class="tip-item">
+        <text class="tip-icon">💡</text>
+        <text class="tip-text">光线充足识别更准确</text>
+      </view>
+      <view class="tip-item">
+        <text class="tip-icon">📱</text>
+        <text class="tip-text">距离适中，避免模糊</text>
+      </view>
+    </view>
+  </view>
+</view>

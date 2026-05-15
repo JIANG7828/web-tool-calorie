@@ -1,0 +1,62 @@
+<view class="container">
+  <!-- Latest Weight -->
+  <view class="header-card">
+    <view class="weight-main">
+      <text class="weight-label">最新体重</text>
+      <text class="weight-number" wx:if="{{latestWeight}}">{{latestWeight.weight}} kg</text>
+      <text class="weight-number" wx:else>-- kg</text>
+    </view>
+    <view class="bmi-section">
+      <text class="bmi-label">BMI</text>
+      <text class="bmi-value" style="color: {{bmiInfo.color}}">{{bmi > 0 ? bmi : '--'}}</text>
+      <text class="bmi-status" style="color: {{bmiInfo.color}}">{{bmiInfo.label}}</text>
+    </view>
+  </view>
+
+  <!-- Weight Input -->
+  <view class="input-card">
+    <view class="input-section">
+      <text class="input-title">记录体重</text>
+      <view class="input-row">
+        <input class="weight-input" type="digit" placeholder="输入体重" value="{{weightInput}}" bindinput="onWeightInput" />
+        <text class="input-unit">kg</text>
+        <button class="save-btn" bindtap="onSaveWeight">保存</button>
+      </view>
+    </view>
+    <view class="target-section">
+      <text class="input-title">目标体重</text>
+      <input class="target-input" type="digit" placeholder="输入目标体重" value="{{targetWeight}}" bindinput="onInputChange" />
+      <text class="input-unit">kg</text>
+    </view>
+  </view>
+
+  <!-- Chart -->
+  <view wx:if="{{showCanvas}}" class="chart-card">
+    <view class="section-title">体重趋势</view>
+    <canvas type="2d" id="weightChart" class="chart-canvas" />
+  </view>
+
+  <view wx:else class="empty-chart">
+    <text class="empty-text">暂无体重数据</text>
+    <text class="empty-hint">记录体重后查看趋势图</text>
+  </view>
+
+  <!-- Records List -->
+  <view class="records-card">
+    <view class="section-title">历史记录</view>
+
+    <view wx:if="{{records.length === 0}}" class="empty-records">
+      <text class="empty-text">暂无记录</text>
+    </view>
+
+    <view wx:else class="record-list">
+      <view wx:for="{{records}}" wx:key="{{item.id}}" class="record-item">
+        <view class="record-left">
+          <text class="record-date">{{item.date}}</text>
+          <text class="record-weight">{{item.weight}} kg</text>
+        </view>
+        <text class="record-delete" data-id="{{item.id}}" bindtap="onDeleteRecord">删除</text>
+      </view>
+    </view>
+  </view>
+</view>

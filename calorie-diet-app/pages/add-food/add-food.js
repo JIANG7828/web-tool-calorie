@@ -13,10 +13,12 @@ Page({
     selectedFood: null,
     selectedPortion: null,
     customCalories: '',
+    customFoodName: '',
     mealType: 'breakfast',
     date: '',
     showFoodDetail: false,
-    showCustomInput: false
+    showCustomInput: false,
+    macroInfo: { protein: 0, fat: 0, carbs: 0 }
   },
 
   onLoad: function(options) {
@@ -81,12 +83,19 @@ Page({
     const food = foodDatabase.getFoodById(foodId);
 
     if (food) {
+      const macro = food.macroPerHundred ? {
+        protein: food.macroPerHundred.protein,
+        fat: food.macroPerHundred.fat,
+        carbs: food.macroPerHundred.carbs
+      } : { protein: 0, fat: 0, carbs: 0 };
+
       this.setData({
         selectedFood: food,
         selectedPortion: food.portions[0],
         showFoodDetail: true,
         showCustomInput: false,
-        customCalories: ''
+        customCalories: '',
+        macroInfo: macro
       });
     }
   },
@@ -94,8 +103,12 @@ Page({
   selectPortion: function(e) {
     const index = e.currentTarget.dataset.index;
     const food = this.data.selectedFood;
+    const weight = food.portions[index].weight;
+    const macro = foodDatabase.calculateMacro(food.id, weight);
+
     this.setData({
-      selectedPortion: food.portions[index]
+      selectedPortion: food.portions[index],
+      macroInfo: macro
     });
   },
 
@@ -144,6 +157,7 @@ Page({
       calorie: calorie,
       portion: 1,
       portionUnit: '份',
+      macro: { protein: 0, fat: 0, carbs: 0 },
       createdAt: Date.now()
     };
 
@@ -171,6 +185,7 @@ Page({
     }
 
     const calorie = Math.round((selectedFood.caloriePerHundred / 100) * selectedPortion.weight);
+    const macro = foodDatabase.calculateMacro(selectedFood.id, selectedPortion.weight);
 
     const record = {
       id: format.generateId(),
@@ -180,10 +195,13 @@ Page({
       calorie: calorie,
       portion: selectedPortion.weight,
       portionUnit: 'g',
+      macro: macro,
+      foodId: selectedFood.id,
       createdAt: Date.now()
     };
 
     dataStore.addRecord(record);
+    dataStore.addLastFood(selectedFood.name);
 
     wx.showToast({
       title: '添加成功',

@@ -1,0 +1,95 @@
+<view class="container">
+  <!-- Summary Card -->
+  <view class="summary-card">
+    <view wx:if="{{mode === 'week'}}">
+      <text class="summary-title">本周统计</text>
+      <view class="summary-grid">
+        <view class="summary-item">
+          <text class="summary-value">{{weekTotal}}</text>
+          <text class="summary-label">周总摄入(千卡)</text>
+        </view>
+        <view class="summary-item">
+          <text class="summary-value">{{weekAvg}}</text>
+          <text class="summary-label">日均摄入(千卡)</text>
+        </view>
+      </view>
+    </view>
+    <view wx:else>
+      <text class="summary-title">{{currentMonth}} 月统计</text>
+      <view class="summary-grid">
+        <view class="summary-item">
+          <text class="summary-value">{{monthTotal}}</text>
+          <text class="summary-label">月总摄入(千卡)</text>
+        </view>
+        <view class="summary-item">
+          <text class="summary-value">{{monthAvg}}</text>
+          <text class="summary-label">日均摄入(千卡)</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Macro Distribution -->
+  <view wx:if="{{mode === 'week' && macroDistribution.protein > 0}}" class="macro-card">
+    <view class="section-title">本周营养素分布</view>
+    <view class="macro-bars">
+      <view class="macro-row">
+        <text class="macro-label" style="color: #FF6B6B">蛋白质</text>
+        <view class="macro-bar-bg">
+          <view class="macro-bar-fill" style="width: {{macroDistribution.protein + macroDistribution.fat + macroDistribution.carbs > 0 ? macroDistribution.protein / (macroDistribution.protein + macroDistribution.fat + macroDistribution.carbs) * 100 : 0}}%; background-color: #FF6B6B"></view>
+        </view>
+        <text class="macro-value" style="color: #FF6B6B">{{macroDistribution.protein}}g</text>
+      </view>
+      <view class="macro-row">
+        <text class="macro-label" style="color: #FFD93D">脂肪</text>
+        <view class="macro-bar-bg">
+          <view class="macro-bar-fill" style="width: {{macroDistribution.protein + macroDistribution.fat + macroDistribution.carbs > 0 ? macroDistribution.fat / (macroDistribution.protein + macroDistribution.fat + macroDistribution.carbs) * 100 : 0}}%; background-color: #FFD93D"></view>
+        </view>
+        <text class="macro-value" style="color: #FFD93D">{{macroDistribution.fat}}g</text>
+      </view>
+      <view class="macro-row">
+        <text class="macro-label" style="color: #6BCB77">碳水</text>
+        <view class="macro-bar-bg">
+          <view class="macro-bar-fill" style="width: {{macroDistribution.protein + macroDistribution.fat + macroDistribution.carbs > 0 ? macroDistribution.carbs / (macroDistribution.protein + macroDistribution.fat + macroDistribution.carbs) * 100 : 0}}%; background-color: #6BCB77"></view>
+        </view>
+        <text class="macro-value" style="color: #6BCB77">{{macroDistribution.carbs}}g</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Mode Switch -->
+  <view class="mode-switch">
+    <view class="mode-btn {{mode === 'week' ? 'active' : ''}}" data-mode="week" bindtap="switchMode">
+      <text>周</text>
+    </view>
+    <view class="mode-btn {{mode === 'month' ? 'active' : ''}}" data-mode="month" bindtap="switchMode">
+      <text>月</text>
+    </view>
+  </view>
+
+  <!-- Bar Chart -->
+  <view class="chart-card">
+    <view class="section-title">{{mode === 'week' ? '7天热量柱状图' : '月度热量柱状图'}}</view>
+    <canvas type="2d" id="barChart" class="chart-canvas" />
+    <view class="chart-legend">
+      <view class="legend-item">
+        <view class="legend-color green"></view>
+        <text class="legend-text">未超标</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-color red"></view>
+        <text class="legend-text">已超标</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-line"></view>
+        <text class="legend-text">目标线 {{goal}}千卡</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Empty State -->
+  <view wx:if="{{(mode === 'week' && weekData.length === 0) || (mode === 'month' && monthData.length === 0)}}" class="empty-state">
+    <text class="empty-text">暂无数据</text>
+    <text class="empty-hint">记录饮食后查看统计</text>
+  </view>
+</view>

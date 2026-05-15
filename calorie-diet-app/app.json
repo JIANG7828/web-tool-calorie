@@ -1,9 +1,13 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/records/records",
+    "pages/exercise/exercise",
+    "pages/food-recognition/food-recognition",
+    "pages/profile/profile",
     "pages/add-food/add-food",
     "pages/statistics/statistics",
-    "pages/settings/settings"
+    "pages/weight/weight"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -19,25 +23,31 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "今日",
+        "text": "首页",
         "iconPath": "assets/icons/home.png",
         "selectedIconPath": "assets/icons/home-active.png"
       },
       {
-        "pagePath": "pages/add-food/add-food",
+        "pagePath": "pages/records/records",
         "text": "记录",
         "iconPath": "assets/icons/add.png",
         "selectedIconPath": "assets/icons/add-active.png"
       },
       {
-        "pagePath": "pages/statistics/statistics",
-        "text": "统计",
+        "pagePath": "pages/exercise/exercise",
+        "text": "运动",
         "iconPath": "assets/icons/chart.png",
         "selectedIconPath": "assets/icons/chart-active.png"
       },
       {
-        "pagePath": "pages/settings/settings",
-        "text": "设置",
+        "pagePath": "pages/food-recognition/food-recognition",
+        "text": "识食物",
+        "iconPath": "assets/icons/settings.png",
+        "selectedIconPath": "assets/icons/settings-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
         "iconPath": "assets/icons/settings.png",
         "selectedIconPath": "assets/icons/settings-active.png"
       }

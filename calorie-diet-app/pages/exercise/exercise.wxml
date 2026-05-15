@@ -1,0 +1,95 @@
+<view class="container">
+  <!-- Today Summary -->
+  <view class="summary-card">
+    <view class="summary-title">今日运动</view>
+    <view class="summary-content">
+      <view class="summary-item">
+        <text class="summary-value">{{todayTotalCalories}}</text>
+        <text class="summary-label">消耗(千卡)</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-value">{{todayRecords.length}}</text>
+        <text class="summary-label">运动次数</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Search -->
+  <view class="search-bar">
+    <input class="search-input" placeholder="搜索运动..." bindinput="onSearch" value="{{searchKeyword}}" />
+  </view>
+
+  <!-- Categories -->
+  <scroll-view class="category-scroll" scroll-x="true">
+    <view class="category-list">
+      <view wx:for="{{categories}}" wx:key="{{item}}" class="category-tag {{currentCategory === item ? 'active' : ''}}" data-category="{{item}}" bindtap="onCategoryChange">
+        <text>{{item}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- Activity List -->
+  <view class="activity-section">
+    <view class="section-title">选择运动</view>
+
+    <view wx:if="{{filteredActivities.length === 0}}" class="empty-state">
+      <text class="empty-text">暂无匹配的运动</text>
+    </view>
+
+    <view wx:else class="activity-grid">
+      <view wx:for="{{filteredActivities}}" wx:key="{{item.id}}" class="activity-item" data-item="{{item}}" bindtap="onSelectActivity">
+        <text class="activity-icon">{{item.icon}}</text>
+        <text class="activity-name">{{item.name}}</text>
+        <text class="activity-met">MET {{item.met}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Record Input Modal -->
+  <view class="modal-mask" wx:if="{{showRecordInput}}" bindtap="onCancelInput">
+    <view class="modal-content" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">{{selectedActivity.icon}} {{selectedActivity.name}}</text>
+        <text class="modal-close" bindtap="onCancelInput">✕</text>
+      </view>
+      <text class="modal-desc">{{selectedActivity.desc}}</text>
+
+      <view class="input-row">
+        <text class="input-label">时长(分钟)</text>
+        <input class="duration-input" type="number" placeholder="输入时长" value="{{duration}}" bindinput="onDurationInput" />
+      </view>
+
+      <view class="calc-result">
+        <text class="calc-label">预计消耗</text>
+        <text class="calc-value">{{exerciseCalories}}</text>
+        <text class="calc-unit">千卡</text>
+      </view>
+
+      <button class="save-exercise-btn" bindtap="onSaveExercise">保存记录</button>
+    </view>
+  </view>
+
+  <!-- Today Records -->
+  <view class="records-section">
+    <view class="section-title">今日运动记录</view>
+
+    <view wx:if="{{todayRecords.length === 0}}" class="empty-records">
+      <text class="empty-text">暂无运动记录</text>
+      <text class="empty-hint">选择上方运动开始记录</text>
+    </view>
+
+    <view wx:else class="record-list">
+      <view wx:for="{{todayRecords}}" wx:key="{{item.id}}" class="record-item">
+        <view class="record-left">
+          <text class="record-icon">{{item.icon}}</text>
+          <view class="record-info">
+            <text class="record-name">{{item.activityName}}</text>
+            <text class="record-detail">{{item.duration}}分钟 · {{item.calories}}千卡</text>
+          </view>
+        </view>
+        <text class="record-delete" data-id="{{item.id}}" bindtap="onDeleteRecord">删除</text>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,93 @@
+<view class="container">
+  <!-- Date Navigation -->
+  <view class="date-nav">
+    <view class="nav-btn" bindtap="goPrevDay">
+      <text class="nav-icon">◀</text>
+    </view>
+    <view class="date-display" bindtap="pickDate">
+      <text class="date-text">{{selectedDate}}</text>
+      <text class="date-tag" wx:if="{{isToday}}">今天</text>
+    </view>
+    <view class="nav-btn" bindtap="goNextDay">
+      <text class="nav-icon {{isToday ? 'disabled' : ''}}">▶</text>
+    </view>
+  </view>
+
+  <!-- Nutrition Summary -->
+  <view class="summary-card">
+    <view class="calorie-main">
+      <text class="calorie-number">{{totalCalories}}</text>
+      <text class="calorie-unit">千卡</text>
+    </view>
+    <view class="macro-bars">
+      <view class="macro-item">
+        <view class="macro-bar">
+          <view class="macro-fill protein-fill" style="width: {{totalCalories > 0 ? (macros.protein * 4 / totalCalories * 100) : 0}}%"></view>
+        </view>
+        <text class="macro-label">蛋白质 {{macros.protein}}g</text>
+      </view>
+      <view class="macro-item">
+        <view class="macro-bar">
+          <view class="macro-fill fat-fill" style="width: {{totalCalories > 0 ? (macros.fat * 9 / totalCalories * 100) : 0}}%"></view>
+        </view>
+        <text class="macro-label">脂肪 {{macros.fat}}g</text>
+      </view>
+      <view class="macro-item">
+        <view class="macro-bar">
+          <view class="macro-fill carb-fill" style="width: {{totalCalories > 0 ? (macros.carbs * 4 / totalCalories * 100) : 0}}%"></view>
+        </view>
+        <text class="macro-label">碳水 {{macros.carbs}}g</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Meal Groups -->
+  <view wx:if="{{records.length === 0}}" class="empty-state">
+    <text class="empty-text">暂无记录</text>
+    <text class="empty-hint">{{selectedDate}} 没有食物记录</text>
+  </view>
+
+  <view wx:else class="meal-sections">
+    <block wx:for="{{mealOrder}}" wx:key="{{item}}">
+      <view wx:if="{{groupedRecords[item].length > 0}}" class="meal-card">
+        <view class="meal-header">
+          <text class="meal-title">{{mealTypeLabels[item]}}</text>
+          <text class="meal-total">{{getMealTotal(item)}}千卡</text>
+        </view>
+
+        <view class="record-list">
+          <view wx:for="{{groupedRecords[item]}}" wx:key="{{item.id}}" class="record-item">
+            <view class="record-left">
+              <text class="record-name">{{item.foodName}}</text>
+              <text class="record-detail">{{item.portion}}{{item.portionUnit}} · {{item.calorie}}千卡</text>
+              <text class="record-macro" wx:if="{{item.macro}}">蛋 {{item.macro.protein}}g · 脂 {{item.macro.fat}}g · 碳 {{item.macro.carbs}}g</text>
+            </view>
+            <view class="record-actions">
+              <text class="action-edit" data-item="{{item}}" bindtap="onEditRecord">编辑</text>
+              <text class="action-delete" data-id="{{item.id}}" bindtap="onDeleteRecord">删除</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- Edit Modal -->
+  <view class="modal-mask" wx:if="{{showEditModal}}" bindtap="onCancelEdit">
+    <view class="modal-content" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">编辑份量</text>
+        <text class="modal-close" bindtap="onCancelEdit">✕</text>
+      </view>
+
+      <text class="edit-food-name">{{editRecord.foodName}}</text>
+
+      <view class="edit-row">
+        <text class="edit-label">重量(g)</text>
+        <input class="edit-input" type="number" value="{{editWeight}}" bindinput="onEditWeightInput" />
+      </view>
+
+      <button class="save-edit-btn" bindtap="onSaveEdit">保存</button>
+    </view>
+  </view>
+</view>

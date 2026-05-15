@@ -1,0 +1,96 @@
+<view class="container">
+  <view class="profile-header">
+    <view class="avatar-section">
+      <view class="avatar-circle">
+        <text class="avatar-text">{{nickname ? nickname[0] : '👤'}}</text>
+      </view>
+      <view class="avatar-info">
+        <input class="nickname-input" placeholder="输入你的昵称" value="{{nickname}}" bindinput="onNicknameInput" />
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">基本信息</view>
+
+    <view class="form-row">
+      <text class="form-label">性别</text>
+      <picker bindchange="onGenderChange" value="{{gender === 'male' ? 0 : 1}}" range="{{['男', '女']}}">
+        <view class="picker-value">{{gender === 'male' ? '男' : '女'}} ▾</view>
+      </picker>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">年龄</text>
+      <input class="form-input" type="number" value="{{age}}" bindinput="onAgeInput" placeholder="25" />
+      <text class="form-unit">岁</text>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">身高</text>
+      <input class="form-input" type="number" value="{{height}}" bindinput="onHeightInput" placeholder="160" />
+      <text class="form-unit">cm</text>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">体重</text>
+      <input class="form-input" type="number" value="{{weight}}" bindinput="onWeightInput" placeholder="55" />
+      <text class="form-unit">kg</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">目标选择</view>
+    <view class="target-grid">
+      <view wx:for="{{targets}}" wx:key="{{item.value}}" class="target-item {{target === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="onTargetChange">
+        <text class="target-icon">{{item.icon}}</text>
+        <text class="target-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">活动级别</view>
+    <view class="activity-list">
+      <view wx:for="{{activityLevels}}" wx:key="{{item.value}}" class="activity-item {{activityLevel === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="onActivityChange">
+        <view class="activity-info">
+          <text class="activity-name">{{item.label}}</text>
+          <text class="activity-desc">{{item.desc}}</text>
+        </view>
+        <text class="activity-check">{{activityLevel === item.value ? '✓' : ''}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card goal-card">
+    <view class="card-title">每日目标热量</view>
+    <text class="goal-number">{{dailyCalorieGoal}}</text>
+    <text class="goal-unit">千卡/天</text>
+  </view>
+
+  <view class="card bmi-card">
+    <view class="card-title">BMI</view>
+    <text class="bmi-number" style="color: {{bmiInfo.color}}">{{bmi}}</text>
+    <text class="bmi-label" style="color: {{bmiInfo.color}}">{{bmiInfo.label}}</text>
+  </view>
+
+  <view class="card">
+    <view class="card-title">7天摄入统计</view>
+    <view class="week-stats">
+      <view wx:for="{{weekStats}}" wx:key="{{item.date}}" class="week-item {{item.isToday ? 'today' : ''}}">
+        <text class="week-day {{item.isToday ? 'today-text' : ''}}">{{item.dayName}}</text>
+        <text class="week-cal">{{item.calories > 0 ? item.calories : '-'}}</text>
+      </view>
+    </view>
+    <view class="week-summary">
+      <text class="summary-item">周总计: {{weekTotal}}千卡</text>
+      <text class="summary-item">周平均: {{weekAvg}}千卡/天</text>
+    </view>
+  </view>
+
+  <button class="save-btn {{showSaved ? 'saved' : ''}}" bindtap="onSave">保存设置</button>
+
+  <view class="saved-tip" wx:if="{{showSaved}}">
+    <text>✓ 已保存</text>
+  </view>
+</view>
