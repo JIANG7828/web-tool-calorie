@@ -7,7 +7,11 @@
     "pages/profile/profile",
     "pages/add-food/add-food",
     "pages/statistics/statistics",
-    "pages/weight/weight"
+    "pages/weight/weight",
+    "pages/recipe/recipe",
+    "pages/evaluation/evaluation",
+    "pages/checkin/checkin",
+    "pages/food-database/food-database"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -28,20 +32,20 @@
         "selectedIconPath": "assets/icons/home-active.png"
       },
       {
-        "pagePath": "pages/records/records",
-        "text": "记录",
+        "pagePath": "pages/recipe/recipe",
+        "text": "菜谱",
         "iconPath": "assets/icons/add.png",
         "selectedIconPath": "assets/icons/add-active.png"
       },
       {
-        "pagePath": "pages/exercise/exercise",
-        "text": "运动",
+        "pagePath": "pages/food-recognition/food-recognition",
+        "text": "识食物",
         "iconPath": "assets/icons/chart.png",
         "selectedIconPath": "assets/icons/chart-active.png"
       },
       {
-        "pagePath": "pages/food-recognition/food-recognition",
-        "text": "识食物",
+        "pagePath": "pages/exercise/exercise",
+        "text": "运动",
         "iconPath": "assets/icons/settings.png",
         "selectedIconPath": "assets/icons/settings-active.png"
       },

@@ -1,0 +1,106 @@
+<view class="container">
+  <view class="score-header" style="background: {{ratingColor}}">
+    <view class="score-circle">
+      <view class="score-number">{{totalScore}}</view>
+      <view class="score-label">综合评分</view>
+    </view>
+    <view class="rating-badge">{{rating}}</view>
+  </view>
+
+  <view class="score-grid">
+    <view class="score-card">
+      <view class="score-bar" style="width: {{bmiScore}}%">
+        <view class="score-bar-inner" style="background: {{bmiScore >= 75 ? '#4CAF50' : '#FF9800'}}"></view>
+      </view>
+      <view class="score-detail">
+        <text class="score-name">BMI 指数</text>
+        <text class="score-val">{{bmiScore}}分</text>
+      </view>
+      <view class="bmi-info">{{bmiInfo.label}}</view>
+    </view>
+
+    <view class="score-card">
+      <view class="score-bar" style="width: {{dietScore}}%">
+        <view class="score-bar-inner" style="background: {{dietScore >= 75 ? '#4CAF50' : '#FF9800'}}"></view>
+      </view>
+      <view class="score-detail">
+        <text class="score-name">饮食控制</text>
+        <text class="score-val">{{dietScore}}分</text>
+      </view>
+    </view>
+
+    <view class="score-card">
+      <view class="score-bar" style="width: {{exerciseScore}}%">
+        <view class="score-bar-inner" style="background: {{exerciseScore >= 75 ? '#4CAF50' : '#FF9800'}}"></view>
+      </view>
+      <view class="score-detail">
+        <text class="score-name">运动达标</text>
+        <text class="score-val">{{exerciseScore}}分</text>
+      </view>
+    </view>
+
+    <view class="score-card">
+      <view class="score-bar" style="width: {{waterScore}}%">
+        <view class="score-bar-inner" style="background: {{waterScore >= 75 ? '#4CAF50' : '#FF9800'}}"></view>
+      </view>
+      <view class="score-detail">
+        <text class="score-name">饮水达标</text>
+        <text class="score-val">{{waterScore}}分</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="evaluation-section">
+    <view class="section-title">优点</view>
+    <view class="pros-list">
+      <view class="pro-item" wx:for="{{pros}}" wx:key="index">
+        <text class="pro-icon">✓</text>
+        <text class="pro-text">{{item}}</text>
+      </view>
+      <view class="empty-tip" wx:if="{{pros.length === 0}}">继续加油，争取获得更多优点！</view>
+    </view>
+  </view>
+
+  <view class="evaluation-section">
+    <view class="section-title">不足</view>
+    <view class="cons-list">
+      <view class="con-item" wx:for="{{cons}}" wx:key="index">
+        <text class="con-icon">✗</text>
+        <text class="con-text">{{item}}</text>
+      </view>
+      <view class="empty-tip" wx:if="{{cons.length === 0}}">表现很棒，没有明显不足！</view>
+    </view>
+  </view>
+
+  <view class="evaluation-section">
+    <view class="section-title">营养师建议</view>
+    <view class="suggestions-list">
+      <view class="suggestion-item" wx:for="{{suggestions}}" wx:key="index">
+        <text class="suggestion-text">{{item}}</text>
+      </view>
+      <view class="empty-tip" wx:if="{{suggestions.length === 0}}">饮食结构良好，继续保持！</view>
+    </view>
+  </view>
+
+  <view class="next-meal-section">
+    <view class="section-title">下一餐建议</view>
+    <view class="next-meal-content">
+      <text class="next-meal-text">{{nextMealSuggestion}}</text>
+    </view>
+    <view class="action-buttons">
+      <button class="action-btn" bindtap="onGoToExercise">去运动</button>
+      <button class="action-btn primary" bindtap="onGoToRecords">记饮食</button>
+    </view>
+  </view>
+
+  <view class="week-section">
+    <view class="section-title">近7天热量</view>
+    <view class="week-bars">
+      <view class="week-bar-item" wx:for="{{weekData}}" wx:key="date">
+        <view class="week-bar {{item.isToday ? 'today' : ''}}" style="height: {{item.calories > 0 ? Math.min(item.calories / 20, 100) : 4}}%"></view>
+        <text class="week-label {{item.isToday ? 'today' : ''}}">{{item.dayName}}</text>
+        <text class="week-cal">{{item.calories}}</text>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,334 @@
+<view class="container">
+  <!-- Search Bar -->
+  <view class="search-section">
+    <view class="search-bar" wx:if="{{showSearchBar}}">
+      <view class="search-input-wrap">
+        <text class="search-icon">🔍</text>
+        <input class="search-input" placeholder="搜索菜谱名称或描述" value="{{searchKeyword}}" bindinput="onSearchInput" bindconfirm="onSearchConfirm" />
+        <text class="search-clear" bindtap="onClearSearch" wx:if="{{searchKeyword}}">✕</text>
+      </view>
+      <text class="search-cancel" bindtap="onClearSearch">取消</text>
+    </view>
+    <view class="search-header" wx:else>
+      <text class="page-title">菜谱推荐</text>
+      <view class="header-actions">
+        <text class="action-btn" bindtap="openCalendar">📅 餐单</text>
+        <text class="search-btn" bindtap="toggleSearchBar">🔍 搜索</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Category Filter -->
+  <view class="filter-tabs">
+    <scroll-view scroll-x="true" class="tab-scroll">
+      <view class="tab-group">
+        <view wx:for="{{categoryTabs}}" wx:key="value" class="tab-item {{selectedCategory === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="onCategoryChange">
+          <text class="tab-text">{{item.label}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- Meal Type Filter -->
+  <view class="filter-tabs meal-tabs">
+    <scroll-view scroll-x="true" class="tab-scroll">
+      <view class="tab-group">
+        <view wx:for="{{mealTypeTabs}}" wx:key="value" class="tab-item meal-tab {{selectedMealType === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="onMealTypeChange">
+          <text class="tab-text">{{item.label}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- AI Recommend Button -->
+  <view class="ai-recommend-section">
+    <button class="ai-btn" bindtap="aiRecommend" disabled="{{aiLoading}}">
+      <text class="ai-btn-icon">✨</text>
+      <text class="ai-btn-text">{{aiLoading ? 'AI推荐中...' : 'AI智能推荐'}}</text>
+    </button>
+  </view>
+
+  <!-- AI Recommendation Result -->
+  <view class="ai-result-card" wx:if="{{aiRecommendation}}">
+    <view class="ai-result-header">
+      <text class="ai-result-title">🤖 AI为你推荐今日餐单</text>
+      <text class="ai-tips">{{aiRecommendation.tips}}</text>
+    </view>
+    <view class="ai-meal-list">
+      <view class="ai-meal-item" wx:if="{{aiRecommendation.breakfast}}">
+        <text class="ai-meal-label">🌅 早餐</text>
+        <text class="ai-meal-name">{{aiRecommendation.breakfast.name}}</text>
+        <text class="ai-meal-cal">{{aiRecommendation.breakfast.calorie}}千卡</text>
+      </view>
+      <view class="ai-meal-item" wx:if="{{aiRecommendation.lunch}}">
+        <text class="ai-meal-label">☀️ 午餐</text>
+        <text class="ai-meal-name">{{aiRecommendation.lunch.name}}</text>
+        <text class="ai-meal-cal">{{aiRecommendation.lunch.calorie}}千卡</text>
+      </view>
+      <view class="ai-meal-item" wx:if="{{aiRecommendation.dinner}}">
+        <text class="ai-meal-label">🌙 晚餐</text>
+        <text class="ai-meal-name">{{aiRecommendation.dinner.name}}</text>
+        <text class="ai-meal-cal">{{aiRecommendation.dinner.calorie}}千卡</text>
+      </view>
+    </view>
+    <view class="ai-nutrition-summary">
+      <text class="ai-nutrition-label">总计：</text>
+      <text class="ai-nutrition-item">热量 {{aiRecommendation.totalCalorie}}千卡</text>
+      <text class="ai-nutrition-item">蛋白质 {{aiRecommendation.totalProtein}}g</text>
+      <text class="ai-nutrition-item">脂肪 {{aiRecommendation.totalFat}}g</text>
+      <text class="ai-nutrition-item">碳水 {{aiRecommendation.totalCarbs}}g</text>
+    </view>
+    <button class="ai-add-plan-btn" bindtap="addRecommendToPlan">添加到定制餐单</button>
+  </view>
+
+  <!-- Recipe List -->
+  <view class="recipe-section">
+    <view class="section-header">
+      <text class="section-title">菜谱列表</text>
+      <text class="recipe-count">{{filteredRecipes.length}} 道菜</text>
+    </view>
+
+    <view wx:if="{{filteredRecipes.length === 0}}" class="empty-state">
+      <text class="empty-text">暂无匹配的菜谱</text>
+      <text class="empty-hint">请尝试更换筛选条件</text>
+    </view>
+
+    <view wx:else class="recipe-grid">
+      <view wx:for="{{filteredRecipes}}" wx:key="id" class="recipe-card" data-id="{{item.id}}" bindtap="showRecipeDetail">
+        <view class="recipe-card-header">
+          <text class="recipe-name">{{item.name}}</text>
+          <view class="recipe-badges">
+            <text class="badge category-badge {{item.category}}">{{item.category === 'chinese' ? '中餐' : '轻食'}}</text>
+            <text class="badge meal-badge">{{item.mealType === 'breakfast' ? '早餐' : item.mealType === 'lunch' ? '午餐' : '晚餐'}}</text>
+          </view>
+        </view>
+        <text class="recipe-desc">{{item.description}}</text>
+        <view class="recipe-macros">
+          <view class="macro-item">
+            <text class="macro-value">{{item.calorie}}</text>
+            <text class="macro-label">千卡</text>
+          </view>
+          <view class="macro-divider"></view>
+          <view class="macro-item">
+            <text class="macro-value">{{item.protein}}g</text>
+            <text class="macro-label">蛋白质</text>
+          </view>
+          <view class="macro-divider"></view>
+          <view class="macro-item">
+            <text class="macro-value">{{item.fat}}g</text>
+            <text class="macro-label">脂肪</text>
+          </view>
+          <view class="macro-divider"></view>
+          <view class="macro-item">
+            <text class="macro-value">{{item.carbs}}g</text>
+            <text class="macro-label">碳水</text>
+          </view>
+        </view>
+        <view class="recipe-card-footer">
+          <text class="recipe-cook-time">🕐 {{item.cookTime}}分钟</text>
+          <text class="recipe-difficulty">{{item.difficulty === 'easy' ? '简单' : item.difficulty === 'medium' ? '中等' : '困难'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Saved Meal Plans -->
+  <view class="meal-plans-section" wx:if="{{savedMealPlans.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">我的餐单</text>
+      <text class="plan-count">{{savedMealPlans.length}} 个餐单</text>
+    </view>
+    <view class="plan-list">
+      <view wx:for="{{savedMealPlans}}" wx:key="id" class="plan-card">
+        <view class="plan-header" bindtap="viewMealPlan" data-id="{{item.id}}">
+          <text class="plan-name">{{item.name}}</text>
+          <text class="plan-date">{{item.createdAt}}</text>
+        </view>
+        <view class="plan-macros">
+          <text class="plan-macro-item">{{item.totalCalorie}}千卡</text>
+          <text class="plan-macro-item">蛋{{item.totalProtein}}g</text>
+          <text class="plan-macro-item">脂{{item.totalFat}}g</text>
+          <text class="plan-macro-item">碳{{item.totalCarbs}}g</text>
+        </view>
+        <view class="plan-recipes">
+          <text class="plan-recipe-tag" wx:for="{{item.recipes}}" wx:key="id" wx:for-item="r">{{r.name}}</text>
+        </view>
+        <view class="plan-actions">
+          <text class="plan-delete" data-id="{{item.id}}" bindtap="deleteMealPlan">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Recipe Detail Modal -->
+  <view class="modal-overlay" wx:if="{{showDetail}}" bindtap="closeDetail">
+    <view class="modal-content" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">{{selectedRecipe.name}}</text>
+        <text class="modal-close" bindtap="closeDetail">✕</text>
+      </view>
+      <view class="modal-body">
+        <view class="detail-badges">
+          <text class="badge category-badge {{selectedRecipe.category}}">{{selectedRecipe.category === 'chinese' ? '中餐' : '轻食'}}</text>
+          <text class="badge meal-badge">{{selectedRecipe.mealType === 'breakfast' ? '早餐' : selectedRecipe.mealType === 'lunch' ? '午餐' : '晚餐'}}</text>
+          <text class="badge difficulty-badge {{selectedRecipe.difficulty}}">{{selectedRecipe.difficulty === 'easy' ? '简单' : selectedRecipe.difficulty === 'medium' ? '中等' : '困难'}}</text>
+        </view>
+        <text class="detail-desc">{{selectedRecipe.description}}</text>
+
+        <view class="detail-macros-card">
+          <view class="detail-macro-item">
+            <text class="detail-macro-value">{{selectedRecipe.calorie}}</text>
+            <text class="detail-macro-label">千卡</text>
+          </view>
+          <view class="detail-macro-item">
+            <text class="detail-macro-value">{{selectedRecipe.protein}}g</text>
+            <text class="detail-macro-label">蛋白质</text>
+          </view>
+          <view class="detail-macro-item">
+            <text class="detail-macro-value">{{selectedRecipe.fat}}g</text>
+            <text class="detail-macro-label">脂肪</text>
+          </view>
+          <view class="detail-macro-item">
+            <text class="detail-macro-value">{{selectedRecipe.carbs}}g</text>
+            <text class="detail-macro-label">碳水</text>
+          </view>
+        </view>
+
+        <view class="detail-meta">
+          <text class="detail-meta-item">🕐 烹饪时间：{{selectedRecipe.cookTime}}分钟</text>
+        </view>
+
+        <view class="detail-method">
+          <text class="detail-method-title">制作方法</text>
+          <view class="method-step" wx:for="{{selectedRecipe.methodSteps}}" wx:key="index">
+            <text class="step-number">{{index + 1}}</text>
+            <text class="step-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="modal-actions">
+        <button class="modal-btn add-plan-btn" bindtap="addToMealPlan" data-id="{{selectedRecipe.id}}">添加到餐单</button>
+        <button class="modal-btn close-btn" bindtap="closeDetail">关闭</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- Meal Plan Modal -->
+  <view class="modal-overlay" wx:if="{{showMealPlan}}" bindtap="closeMealPlan">
+    <view class="modal-content plan-modal" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">定制餐单</text>
+        <text class="modal-close" bindtap="closeMealPlan">✕</text>
+      </view>
+      <view class="modal-body">
+        <view class="plan-name-input">
+          <text class="input-label">餐单名称</text>
+          <input class="name-input" placeholder="输入餐单名称" value="{{mealPlanName}}" bindinput="onPlanNameInput" />
+        </view>
+
+        <view class="plan-summary" wx:if="{{mealPlan.length > 0}}">
+          <view class="summary-row">
+            <text class="summary-label">总热量</text>
+            <text class="summary-value">{{getMealPlanTotal('calorie')}}千卡</text>
+          </view>
+          <view class="summary-row">
+            <text class="summary-label">蛋白质</text>
+            <text class="summary-value">{{getMealPlanTotal('protein')}}g</text>
+          </view>
+          <view class="summary-row">
+            <text class="summary-label">脂肪</text>
+            <text class="summary-value">{{getMealPlanTotal('fat')}}g</text>
+          </view>
+          <view class="summary-row">
+            <text class="summary-label">碳水</text>
+            <text class="summary-value">{{getMealPlanTotal('carbs')}}g</text>
+          </view>
+        </view>
+
+        <view wx:if="{{mealPlan.length === 0}}" class="empty-plan">
+          <text class="empty-plan-text">餐单为空，请先添加菜谱</text>
+        </view>
+
+        <view wx:else class="plan-recipe-list">
+          <view wx:for="{{mealPlan}}" wx:key="id" class="plan-recipe-item">
+            <view class="plan-recipe-info">
+              <text class="plan-recipe-name">{{item.name}}</text>
+              <text class="plan-recipe-cal">{{item.calorie}}千卡 · 蛋{{item.protein}}g 脂{{item.fat}}g 碳{{item.carbs}}g</text>
+            </view>
+            <text class="plan-recipe-remove" data-index="{{index}}" bindtap="removeFromMealPlan">移除</text>
+          </view>
+        </view>
+      </view>
+      <view class="modal-actions">
+        <button class="modal-btn save-plan-btn" bindtap="saveMealPlan">保存餐单</button>
+        <button class="modal-btn clear-plan-btn" bindtap="clearMealPlan">清空</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- Calendar Modal -->
+  <view class="modal-overlay" wx:if="{{showCalendar}}" bindtap="closeCalendar">
+    <view class="modal-content calendar-modal" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">餐单日历</text>
+        <text class="modal-close" bindtap="closeCalendar">✕</text>
+      </view>
+      <view class="modal-body">
+        <view class="calendar-nav">
+          <text class="cal-nav-btn" bindtap="onPrevMonth">‹ 上月</text>
+          <text class="cal-month-title">{{calendarYear}}年{{calendarMonth}}月</text>
+          <text class="cal-nav-btn" bindtap="onNextMonth">下月 ›</text>
+        </view>
+        <view class="calendar-weekdays">
+          <text class="weekday">一</text>
+          <text class="weekday">二</text>
+          <text class="weekday">三</text>
+          <text class="weekday">四</text>
+          <text class="weekday">五</text>
+          <text class="weekday">六</text>
+          <text class="weekday">日</text>
+        </view>
+        <view class="calendar-grid">
+          <view class="cal-day-cell" wx:for="{{calendarDays}}" wx:key="index" wx:if="{{!item.isPadding}}" bindtap="onCalendarDateTap" data-date="{{item.date}}">
+            <view class="cal-day {{item.isToday ? 'today' : ''}} {{selectedCalendarDate === item.date ? 'selected' : ''}} {{item.hasPlan ? 'has-plan' : ''}}">
+              <text class="cal-day-num">{{item.day}}</text>
+              <view class="cal-badge" wx:if="{{item.hasPlan}}">
+                <text class="cal-badge-text">{{item.recipeCount}}道 {{item.totalCal}}千卡</text>
+              </view>
+            </view>
+          </view>
+          <view class="cal-day-cell padding" wx:for="{{calendarDays}}" wx:key="index" wx:if="{{item.isPadding}}">
+            <view class="cal-day empty"></view>
+          </view>
+        </view>
+
+        <view class="day-plan-detail" wx:if="{{calendarMealPlan}}">
+          <view class="day-plan-header">
+            <text class="day-plan-title">{{selectedCalendarDate}} 餐单</text>
+            <text class="day-plan-delete" bindtap="deleteCalendarDayPlan">删除</text>
+          </view>
+          <view class="day-plan-recipes">
+            <view class="day-recipe-item" wx:for="{{calendarMealPlan.recipes}}" wx:key="id">
+              <text class="day-recipe-name">{{item.name}}</text>
+              <text class="day-recipe-cal">{{item.calorie}}千卡</text>
+            </view>
+          </view>
+          <button class="day-plan-add-btn" bindtap="addCalendarDayToRecords">添加到今日记录</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Floating Action Button -->
+  <view class="fab-btn" bindtap="openMealPlan">
+    <text class="fab-icon">📋</text>
+    <text class="fab-badge" wx:if="{{mealPlan.length > 0}}">{{mealPlan.length}}</text>
+  </view>
+
+  <!-- Toast -->
+  <view class="toast-wrap" wx:if="{{showToast}}">
+    <view class="toast-content">
+      <text class="toast-text">{{toastMessage}}</text>
+    </view>
+  </view>
+</view>

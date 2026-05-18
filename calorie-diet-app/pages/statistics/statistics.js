@@ -3,25 +3,42 @@ const format = require('../../utils/format');
 
 Page({
   data: {
-    mode: 'week',
+    mode: '14days',
     weekData: [],
+    twoWeekData: [],
     monthData: [],
     weekTotal: 0,
     weekAvg: 0,
+    twoWeekTotal: 0,
+    twoWeekAvg: 0,
     monthTotal: 0,
     monthAvg: 0,
     goal: 1600,
     macroDistribution: { protein: 0, fat: 0, carbs: 0 },
     weekMacroData: [],
     today: format.formatDate(new Date()),
-    weekStart: '',
-    currentMonth: ''
+    currentMonth: '',
+    exerciseStats: {
+      totalSessions: 0,
+      totalCalories: 0,
+      avgCalories: 0,
+      totalDuration: 0,
+      topActivities: []
+    },
+    achievementRate: {
+      calorieRate: 0,
+      exerciseRate: 0,
+      waterRate: 0,
+      totalDays: 0,
+      achievedDays: 0
+    },
+    showExportModal: false
   },
 
   onLoad: function() {
     var settings = dataStore.getUserSettings();
     this.setData({ goal: settings.dailyCalorieGoal || 1600 });
-    this.loadWeekData();
+    this.loadTwoWeekData();
   },
 
   onShow: function() {
@@ -29,11 +46,15 @@ Page({
   },
 
   loadData: function() {
-    if (this.data.mode === 'week') {
+    if (this.data.mode === '14days') {
+      this.loadTwoWeekData();
+    } else if (this.data.mode === 'week') {
       this.loadWeekData();
     } else {
       this.loadMonthData();
     }
+    this.loadExerciseStats();
+    this.loadAchievementRate();
   },
 
   switchMode: function(e) {
@@ -95,6 +116,49 @@ Page({
     setTimeout(function() { page.drawBarChart(); }, 100);
   },
 
+  loadTwoWeekData: function() {
+    var today = new Date();
+    var twoWeekData = [];
+    var twoWeekTotal = 0;
+    var totalProtein = 0, totalFat = 0, totalCarbs = 0;
+
+    for (var i = 13; i >= 0; i--) {
+      var d = new Date(today);
+      d.setDate(d.getDate() - i);
+      var dateStr = format.formatDate(d);
+      var records = dataStore.getRecordsByDate(dateStr);
+      var dayCal = records.reduce(function(sum, r) { return sum + r.calorie; }, 0);
+      var dayMacro = dataStore.getDateMacroSummary(dateStr);
+      twoWeekTotal += dayCal;
+      totalProtein += dayMacro.protein;
+      totalFat += dayMacro.fat;
+      totalCarbs += dayMacro.carbs;
+
+      var month = d.getMonth() + 1;
+      var day = d.getDate();
+      var dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      var dayName = dayNames[d.getDay()];
+
+      twoWeekData.push({
+        date: dateStr,
+        dayName: dayName,
+        shortLabel: month + '/' + day,
+        calories: dayCal,
+        isToday: format.isToday(dateStr)
+      });
+    }
+
+    this.setData({
+      twoWeekData: twoWeekData,
+      twoWeekTotal: twoWeekTotal,
+      twoWeekAvg: Math.round(twoWeekTotal / 14),
+      macroDistribution: { protein: totalProtein, fat: totalFat, carbs: totalCarbs }
+    });
+
+    var page = this;
+    setTimeout(function() { page.drawBarChart(); }, 100);
+  },
+
   loadMonthData: function() {
     var today = new Date();
     var year = today.getFullYear();
@@ -116,6 +180,84 @@ Page({
     setTimeout(function() { page.drawBarChart(); }, 100);
   },
 
+  loadExerciseStats: function() {
+    var exerciseRecords = wx.getStorageSync('exercise_records') || [];
+    var today = new Date();
+    var twoWeeksAgo = new Date(today);
+    twoWeeksAgo.setDate(today.getDate() - 13);
+    var startDate = format.formatDate(twoWeeksAgo);
+
+    var recentExercise = exerciseRecords.filter(function(r) { return r.date >= startDate; });
+    var totalSessions = recentExercise.length;
+    var totalCal = recentExercise.reduce(function(sum, r) { return sum + (r.calories || 0); }, 0);
+    var totalDuration = recentExercise.reduce(function(sum, r) { return sum + (r.duration || 0); }, 0);
+    var avgCal = totalSessions > 0 ? Math.round(totalCal / totalSessions) : 0;
+
+    var activityCount = {};
+    recentExercise.forEach(function(r) {
+      activityCount[r.activityName] = (activityCount[r.activityName] || 0) + 1;
+    });
+
+    var topActivities = Object.keys(activityCount)
+      .map(function(name) { return { name: name, count: activityCount[name] }; })
+      .sort(function(a, b) { return b.count - a.count; })
+      .slice(0, 5);
+
+    this.setData({
+      exerciseStats: {
+        totalSessions: totalSessions,
+        totalCalories: totalCal,
+        avgCalories: avgCal,
+        totalDuration: totalDuration,
+        topActivities: topActivities
+      }
+    });
+  },
+
+  loadAchievementRate: function() {
+    var today = new Date();
+    var settings = dataStore.getUserSettings();
+    var goal = settings.dailyCalorieGoal || 1600;
+    var achievedDays = 0;
+    var exerciseDays = 0;
+    var waterDays = 0;
+    var totalDays = 14;
+
+    for (var i = 0; i < 14; i++) {
+      var d = new Date(today);
+      d.setDate(d.getDate() - i);
+      var dateStr = format.formatDate(d);
+
+      var records = dataStore.getRecordsByDate(dateStr);
+      var dayCal = records.reduce(function(sum, r) { return sum + r.calorie; }, 0);
+      if (dayCal > 0 && dayCal <= goal * 1.1) {
+        achievedDays++;
+      }
+
+      var exerciseRecords = wx.getStorageSync('exercise_records') || [];
+      var hasExercise = exerciseRecords.some(function(r) { return r.date === dateStr && r.calories > 0; });
+      if (hasExercise) {
+        exerciseDays++;
+      }
+
+      var waterRecords = wx.getStorageSync('water_records') || [];
+      var dayWater = waterRecords.filter(function(r) { return r.date === dateStr; }).length;
+      if (dayWater >= 8) {
+        waterDays++;
+      }
+    }
+
+    this.setData({
+      achievementRate: {
+        calorieRate: Math.round(achievedDays / totalDays * 100),
+        exerciseRate: Math.round(exerciseDays / totalDays * 100),
+        waterRate: Math.round(waterDays / totalDays * 100),
+        totalDays: totalDays,
+        achievedDays: achievedDays
+      }
+    });
+  },
+
   drawBarChart: function() {
     var query = wx.createSelectorQuery();
     query.select('#barChart').fields({ node: true, size: true }).exec(function(res) {
@@ -135,7 +277,9 @@ Page({
 
       ctx.clearRect(0, 0, w, h);
 
-      var data = this.data.mode === 'week' ? this.data.weekData : this.data.monthData;
+      var data = this.data.mode === 'week' ? this.data.weekData : 
+                 this.data.mode === '14days' ? this.data.twoWeekData : 
+                 this.data.monthData;
       if (data.length === 0) return;
 
       var values = data.map(function(d) { return d.calories; });
@@ -168,9 +312,14 @@ Page({
       ctx.stroke();
       ctx.setLineDash([]);
 
+      ctx.fillStyle = '#999999';
+      ctx.font = '18px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('目标线', w - padding.right - 60, goalY - 8);
+
       var barCount = data.length;
-      var barGap = Math.min(16, chartWidth / (barCount * 3));
-      var barWidth = Math.max(8, (chartWidth - barGap * (barCount + 1)) / barCount);
+      var barGap = Math.min(12, chartWidth / (barCount * 3));
+      var barWidth = Math.max(6, (chartWidth - barGap * (barCount + 1)) / barCount);
 
       for (var j = 0; j < barCount; j++) {
         var barH = (data[j].calories / maxVal) * chartHeight;
@@ -200,22 +349,73 @@ Page({
 
         if (data[j].calories > 0) {
           ctx.fillStyle = '#666666';
-          ctx.font = '18px sans-serif';
+          ctx.font = '16px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(data[j].calories, x + barWidth / 2, y - 8);
+          ctx.fillText(data[j].calories, x + barWidth / 2, y - 6);
         }
 
         ctx.fillStyle = data[j].isToday ? '#4CAF50' : '#999999';
-        ctx.font = data[j].isToday ? 'bold 20px sans-serif' : '18px sans-serif';
+        ctx.font = data[j].isToday ? 'bold 18px sans-serif' : '16px sans-serif';
         ctx.textAlign = 'center';
 
-        var label = data[j].dayName || '';
+        var label = data[j].dayName || data[j].shortLabel || '';
         if (this.data.mode === 'month') {
           var parts = data[j].date.split('-');
           label = parseInt(parts[2]) + '日';
         }
-        ctx.fillText(label, x + barWidth / 2, h - padding.bottom + 24);
+        ctx.fillText(label, x + barWidth / 2, h - padding.bottom + 20);
       }
     }.bind(this));
+  },
+
+  onExportData: function() {
+    var page = this;
+    wx.showActionSheet({
+      itemList: ['导出CSV', '导出JSON'],
+      success: function(res) {
+        if (res.tapIndex === 0) {
+          page.exportCSV();
+        } else {
+          page.exportJSON();
+        }
+      }
+    });
+  },
+
+  exportCSV: function() {
+    var data = this.data.mode === '14days' ? this.data.twoWeekData : this.data.weekData;
+    var csv = '日期,热量,蛋白质,脂肪,碳水\n';
+
+    data.forEach(function(d) {
+      var macro = dataStore.getDateMacroSummary(d.date);
+      csv += d.date + ',' + d.calories + ',' + macro.protein + ',' + macro.fat + ',' + macro.carbs + '\n';
+    });
+
+    var fs = wx.getFileSystemManager();
+    var filePath = wx.env.USER_DATA_PATH + '/calorie_report.csv';
+    fs.writeFileSync(filePath, csv, 'utf8');
+
+    wx.showToast({ title: '已导出到本地', icon: 'success' });
+  },
+
+  exportJSON: function() {
+    var data = this.data.mode === '14days' ? this.data.twoWeekData : this.data.weekData;
+    var exportData = data.map(function(d) {
+      var macro = dataStore.getDateMacroSummary(d.date);
+      return {
+        date: d.date,
+        calories: d.calories,
+        protein: macro.protein,
+        fat: macro.fat,
+        carbs: macro.carbs
+      };
+    });
+
+    var json = JSON.stringify(exportData, null, 2);
+    var fs = wx.getFileSystemManager();
+    var filePath = wx.env.USER_DATA_PATH + '/calorie_report.json';
+    fs.writeFileSync(filePath, json, 'utf8');
+
+    wx.showToast({ title: '已导出到本地', icon: 'success' });
   }
 });

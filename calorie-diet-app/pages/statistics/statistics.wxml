@@ -1,37 +1,105 @@
 <view class="container">
-  <!-- Summary Card -->
-  <view class="summary-card">
-    <view wx:if="{{mode === 'week'}}">
-      <text class="summary-title">本周统计</text>
-      <view class="summary-grid">
-        <view class="summary-item">
-          <text class="summary-value">{{weekTotal}}</text>
-          <text class="summary-label">周总摄入(千卡)</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-value">{{weekAvg}}</text>
-          <text class="summary-label">日均摄入(千卡)</text>
-        </view>
+  <view class="summary-card" wx:if="{{mode === '14days'}}">
+    <text class="summary-title">近14天统计</text>
+    <view class="summary-grid">
+      <view class="summary-item">
+        <text class="summary-value">{{twoWeekTotal}}</text>
+        <text class="summary-label">总摄入(千卡)</text>
       </view>
-    </view>
-    <view wx:else>
-      <text class="summary-title">{{currentMonth}} 月统计</text>
-      <view class="summary-grid">
-        <view class="summary-item">
-          <text class="summary-value">{{monthTotal}}</text>
-          <text class="summary-label">月总摄入(千卡)</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-value">{{monthAvg}}</text>
-          <text class="summary-label">日均摄入(千卡)</text>
-        </view>
+      <view class="summary-item">
+        <text class="summary-value">{{twoWeekAvg}}</text>
+        <text class="summary-label">日均摄入(千卡)</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value">{{achievementRate.achievedDays}}</text>
+        <text class="summary-label">达标天数</text>
       </view>
     </view>
   </view>
 
-  <!-- Macro Distribution -->
-  <view wx:if="{{mode === 'week' && macroDistribution.protein > 0}}" class="macro-card">
-    <view class="section-title">本周营养素分布</view>
+  <view class="summary-card" wx:elif="{{mode === 'week'}}">
+    <text class="summary-title">本周统计</text>
+    <view class="summary-grid">
+      <view class="summary-item">
+        <text class="summary-value">{{weekTotal}}</text>
+        <text class="summary-label">周总摄入(千卡)</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value">{{weekAvg}}</text>
+        <text class="summary-label">日均摄入(千卡)</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="summary-card" wx:else>
+    <text class="summary-title">{{currentMonth}} 月统计</text>
+    <view class="summary-grid">
+      <view class="summary-item">
+        <text class="summary-value">{{monthTotal}}</text>
+        <text class="summary-label">月总摄入(千卡)</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value">{{monthAvg}}</text>
+        <text class="summary-label">日均摄入(千卡)</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="achievement-card">
+    <view class="section-title">近14天达标率</view>
+    <view class="achievement-grid">
+      <view class="achievement-item">
+        <view class="achievement-circle">
+          <view class="achievement-fill" style="width: {{achievementRate.calorieRate}}%; background: {{achievementRate.calorieRate >= 70 ? '#4CAF50' : '#FF9800'}}"></view>
+        </view>
+        <text class="achievement-label">热量达标</text>
+        <text class="achievement-value">{{achievementRate.calorieRate}}%</text>
+      </view>
+      <view class="achievement-item">
+        <view class="achievement-circle">
+          <view class="achievement-fill" style="width: {{achievementRate.exerciseRate}}%; background: {{achievementRate.exerciseRate >= 50 ? '#4CAF50' : '#FF9800'}}"></view>
+        </view>
+        <text class="achievement-label">运动达标</text>
+        <text class="achievement-value">{{achievementRate.exerciseRate}}%</text>
+      </view>
+      <view class="achievement-item">
+        <view class="achievement-circle">
+          <view class="achievement-fill" style="width: {{achievementRate.waterRate}}%; background: {{achievementRate.waterRate >= 70 ? '#4CAF50' : '#FF9800'}}"></view>
+        </view>
+        <text class="achievement-label">饮水达标</text>
+        <text class="achievement-value">{{achievementRate.waterRate}}%</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="exercise-card">
+    <view class="section-title">运动统计（近14天）</view>
+    <view class="exercise-grid">
+      <view class="exercise-item">
+        <text class="exercise-val">{{exerciseStats.totalSessions}}</text>
+        <text class="exercise-label">运动次数</text>
+      </view>
+      <view class="exercise-item">
+        <text class="exercise-val">{{exerciseStats.totalCalories}}</text>
+        <text class="exercise-label">总消耗(千卡)</text>
+      </view>
+      <view class="exercise-item">
+        <text class="exercise-val">{{exerciseStats.avgCalories}}</text>
+        <text class="exercise-label">平均消耗</text>
+      </view>
+      <view class="exercise-item">
+        <text class="exercise-val">{{exerciseStats.totalDuration}}</text>
+        <text class="exercise-label">总时长(分)</text>
+      </view>
+    </view>
+    <view class="top-activities" wx:if="{{exerciseStats.topActivities.length > 0}}">
+      <text class="top-label">热门运动：</text>
+      <text class="top-item" wx:for="{{exerciseStats.topActivities}}" wx:key="name">{{item.name}}({{item.count}}次) </text>
+    </view>
+  </view>
+
+  <view class="macro-card">
+    <view class="section-title">营养素分布</view>
     <view class="macro-bars">
       <view class="macro-row">
         <text class="macro-label" style="color: #FF6B6B">蛋白质</text>
@@ -57,8 +125,10 @@
     </view>
   </view>
 
-  <!-- Mode Switch -->
   <view class="mode-switch">
+    <view class="mode-btn {{mode === '14days' ? 'active' : ''}}" data-mode="14days" bindtap="switchMode">
+      <text>14天</text>
+    </view>
     <view class="mode-btn {{mode === 'week' ? 'active' : ''}}" data-mode="week" bindtap="switchMode">
       <text>周</text>
     </view>
@@ -67,9 +137,8 @@
     </view>
   </view>
 
-  <!-- Bar Chart -->
   <view class="chart-card">
-    <view class="section-title">{{mode === 'week' ? '7天热量柱状图' : '月度热量柱状图'}}</view>
+    <view class="section-title">{{mode === '14days' ? '14天热量趋势' : (mode === 'week' ? '7天热量柱状图' : '月度热量柱状图')}}</view>
     <canvas type="2d" id="barChart" class="chart-canvas" />
     <view class="chart-legend">
       <view class="legend-item">
@@ -87,8 +156,11 @@
     </view>
   </view>
 
-  <!-- Empty State -->
-  <view wx:if="{{(mode === 'week' && weekData.length === 0) || (mode === 'month' && monthData.length === 0)}}" class="empty-state">
+  <view class="export-section">
+    <button class="export-btn" bindtap="onExportData">📤 导出数据</button>
+  </view>
+
+  <view wx:if="{{(mode === 'week' && weekData.length === 0) || (mode === '14days' && twoWeekData.length === 0) || (mode === 'month' && monthData.length === 0)}}" class="empty-state">
     <text class="empty-text">暂无数据</text>
     <text class="empty-hint">记录饮食后查看统计</text>
   </view>

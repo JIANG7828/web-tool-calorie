@@ -1,0 +1,74 @@
+<view class="container">
+  <view class="header">
+    <view class="search-bar" bindtap="toggleSearchBar">
+      <text class="search-icon">🔍</text>
+      <text class="search-placeholder">搜索食物名称或分类</text>
+    </view>
+    <view class="total-count">共 {{totalCount}} 种食物</view>
+  </view>
+
+  <view class="search-input-wrap" wx:if="{{showSearchBar}}">
+    <input class="search-input" placeholder="输入食物名称..." value="{{searchKeyword}}" bindinput="onSearchInput" bindconfirm="onSearchConfirm" />
+    <text class="clear-btn" bindtap="onClearSearch" wx:if="{{searchKeyword}}">✕</text>
+  </view>
+
+  <scroll-view class="category-scroll" scroll-x="{{true}}">
+    <view class="category-list">
+      <view class="category-item {{currentCategory === null && item === '全部' ? 'active' : ''}} {{currentCategory === item ? 'active' : ''}}" wx:for="{{categories}}" wx:key="*this" bindtap="onCategoryTap" data-category="{{item}}">
+        <text class="category-icon">{{getCategoryIcon(item)}}</text>
+        <text class="category-name">{{item}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="food-list">
+    <view class="food-item" wx:for="{{filteredFoods}}" wx:key="id" bindtap="onFoodTap" data-id="{{item.id}}">
+      <view class="food-icon-wrap">
+        <text class="food-emoji">{{getCategoryIcon(item.category)}}</text>
+      </view>
+      <view class="food-info">
+        <text class="food-name">{{item.name}}</text>
+        <view class="food-tags">
+          <text class="food-cal" style="color: {{getCalorieColor(item.caloriePerHundred)}}">{{item.caloriePerHundred}} 千卡/100g</text>
+          <text class="food-gi" wx:if="{{item.lowGi}}">低Gi</text>
+        </view>
+      </view>
+      <view class="food-arrow">›</view>
+    </view>
+    <view class="empty-tip" wx:if="{{filteredFoods.length === 0}}">没有找到相关食物</view>
+  </view>
+
+  <view class="detail-modal" wx:if="{{showDetail}}" bindtap="onCloseDetail">
+    <view class="detail-content" catchtap="">
+      <view class="detail-header" style="background: {{getCalorieColor(foodDetail.caloriePerHundred)}}">
+        <text class="detail-emoji">{{getCategoryIcon(foodDetail.category)}}</text>
+        <text class="detail-name">{{foodDetail.name}}</text>
+        <text class="detail-cal">{{foodDetail.caloriePerHundred}} 千卡/100g</text>
+      </view>
+      <view class="detail-body">
+        <view class="macro-section">
+          <view class="macro-title">营养成分（每100g）</view>
+          <view class="macro-grid">
+            <view class="macro-item">
+              <text class="macro-val">{{foodDetail.macroPerHundred ? foodDetail.macroPerHundred.protein : 0}}g</text>
+              <text class="macro-label">蛋白质</text>
+            </view>
+            <view class="macro-item">
+              <text class="macro-val">{{foodDetail.macroPerHundred ? foodDetail.macroPerHundred.fat : 0}}g</text>
+              <text class="macro-label">脂肪</text>
+            </view>
+            <view class="macro-item">
+              <text class="macro-val">{{foodDetail.macroPerHundred ? foodDetail.macroPerHundred.carbs : 0}}g</text>
+              <text class="macro-label">碳水</text>
+            </view>
+          </view>
+        </view>
+        <view class="detail-tags">
+          <text class="tag" wx:if="{{foodDetail.lowGi}}">低Gi</text>
+          <text class="tag">{{foodDetail.category}}</text>
+        </view>
+        <button class="add-btn" bindtap="onAddToRecord">添加到今日记录（100g）</button>
+      </view>
+    </view>
+  </view>
+</view>

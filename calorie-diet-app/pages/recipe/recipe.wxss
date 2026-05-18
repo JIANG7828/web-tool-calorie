@@ -1,0 +1,990 @@
+.container {
+  padding: 20rpx;
+  padding-bottom: 140rpx;
+  background-color: #f7f8fa;
+  min-height: 100vh;
+}
+
+/* Search Section */
+.search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10rpx 10rpx 20rpx;
+}
+
+.page-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.search-btn {
+  font-size: 26rpx;
+  color: #4CAF50;
+  padding: 12rpx 24rpx;
+  background-color: #E8F5E9;
+  border-radius: 20rpx;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 10rpx 10rpx 20rpx;
+  gap: 16rpx;
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 16rpx 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333333;
+}
+
+.search-clear {
+  font-size: 28rpx;
+  color: #999999;
+  padding: 8rpx;
+}
+
+.search-cancel {
+  font-size: 28rpx;
+  color: #4CAF50;
+}
+
+/* Filter Tabs */
+.filter-tabs {
+  margin-bottom: 16rpx;
+}
+
+.meal-tabs {
+  margin-bottom: 24rpx;
+}
+
+.tab-scroll {
+  white-space: nowrap;
+}
+
+.tab-group {
+  display: inline-flex;
+  gap: 16rpx;
+}
+
+.tab-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14rpx 32rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.tab-item.active {
+  background-color: #4CAF50;
+}
+
+.tab-text {
+  font-size: 26rpx;
+  color: #666666;
+  font-weight: 500;
+}
+
+.tab-item.active .tab-text {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* AI Recommend */
+.ai-recommend-section {
+  margin-bottom: 24rpx;
+}
+
+.ai-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 20rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20rpx;
+  border: none;
+  box-shadow: 0 6rpx 16rpx rgba(102, 126, 234, 0.3);
+}
+
+.ai-btn[disabled] {
+  opacity: 0.7;
+}
+
+.ai-btn-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.ai-btn-text {
+  font-size: 28rpx;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* AI Result */
+.ai-result-card {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
+  border-radius: 24rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.15);
+}
+
+.ai-result-header {
+  margin-bottom: 20rpx;
+}
+
+.ai-result-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #333333;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.ai-tips {
+  font-size: 24rpx;
+  color: #667eea;
+  line-height: 1.5;
+}
+
+.ai-meal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.ai-meal-item {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 16rpx 20rpx;
+}
+
+.ai-meal-label {
+  font-size: 28rpx;
+  margin-right: 16rpx;
+}
+
+.ai-meal-name {
+  flex: 1;
+  font-size: 26rpx;
+  color: #333333;
+  font-weight: 500;
+}
+
+.ai-meal-cal {
+  font-size: 22rpx;
+  color: #667eea;
+  font-weight: 500;
+}
+
+.ai-nutrition-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  padding: 16rpx;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.ai-nutrition-label {
+  font-size: 24rpx;
+  color: #666666;
+  font-weight: 600;
+}
+
+.ai-nutrition-item {
+  font-size: 22rpx;
+  color: #667eea;
+  background-color: #f0f4ff;
+  padding: 6rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.ai-add-plan-btn {
+  width: 100%;
+  padding: 18rpx;
+  background-color: #667eea;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 16rpx;
+  border: none;
+}
+
+/* Recipe Section */
+.recipe-section {
+  margin-bottom: 24rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding: 0 10rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.recipe-count, .plan-count {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #999999;
+  margin-bottom: 12rpx;
+}
+
+.empty-hint {
+  font-size: 24rpx;
+  color: #cccccc;
+}
+
+/* Recipe Grid */
+.recipe-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.recipe-card {
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.recipe-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.recipe-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12rpx;
+}
+
+.recipe-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  flex: 1;
+  margin-right: 16rpx;
+}
+
+.recipe-badges {
+  display: flex;
+  gap: 8rpx;
+}
+
+.badge {
+  font-size: 20rpx;
+  padding: 6rpx 14rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+}
+
+.category-badge.chinese {
+  background-color: #FFF3E0;
+  color: #FF9800;
+}
+
+.category-badge.light {
+  background-color: #E8F5E9;
+  color: #4CAF50;
+}
+
+.meal-badge {
+  background-color: #E3F2FD;
+  color: #2196F3;
+}
+
+.difficulty-badge.easy {
+  background-color: #E8F5E9;
+  color: #4CAF50;
+}
+
+.difficulty-badge.medium {
+  background-color: #FFF3E0;
+  color: #FF9800;
+}
+
+.difficulty-badge.hard {
+  background-color: #FFEBEE;
+  color: #F44336;
+}
+
+.recipe-desc {
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.4;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.recipe-macros {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx;
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.macro-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.macro-value {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.macro-label {
+  font-size: 18rpx;
+  color: #999999;
+  margin-top: 4rpx;
+}
+
+.macro-divider {
+  width: 1rpx;
+  height: 40rpx;
+  background-color: #e0e0e0;
+}
+
+.recipe-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recipe-cook-time {
+  font-size: 22rpx;
+  color: #999999;
+}
+
+.recipe-difficulty {
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  background-color: #f0f0f0;
+  border-radius: 8rpx;
+  color: #666666;
+}
+
+/* Saved Meal Plans */
+.meal-plans-section {
+  margin-bottom: 24rpx;
+}
+
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.plan-card {
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.plan-name {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.plan-date {
+  font-size: 22rpx;
+  color: #cccccc;
+}
+
+.plan-macros {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.plan-macro-item {
+  font-size: 22rpx;
+  color: #666666;
+  background-color: #f8f9fa;
+  padding: 6rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.plan-recipes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+}
+
+.plan-recipe-tag {
+  font-size: 20rpx;
+  color: #4CAF50;
+  background-color: #E8F5E9;
+  padding: 6rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.plan-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.plan-delete {
+  font-size: 24rpx;
+  color: #F44336;
+  padding: 8rpx 16rpx;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 100%;
+  max-height: 85vh;
+  background-color: #ffffff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 32rpx;
+  overflow-y: auto;
+}
+
+.plan-modal {
+  max-height: 80vh;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.modal-close {
+  font-size: 32rpx;
+  color: #999999;
+  padding: 8rpx;
+}
+
+.modal-body {
+  margin-bottom: 24rpx;
+}
+
+.detail-badges {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.detail-desc {
+  font-size: 26rpx;
+  color: #666666;
+  line-height: 1.5;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.detail-macros-card {
+  display: flex;
+  justify-content: space-around;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e8ecf0 100%);
+  border-radius: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.detail-macro-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.detail-macro-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.detail-macro-label {
+  font-size: 22rpx;
+  color: #999999;
+  margin-top: 4rpx;
+}
+
+.detail-meta {
+  margin-bottom: 24rpx;
+}
+
+.detail-meta-item {
+  font-size: 24rpx;
+  color: #666666;
+}
+
+.detail-method {
+  margin-bottom: 20rpx;
+}
+
+.detail-method-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.method-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  background-color: #4CAF50;
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 22rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.step-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #666666;
+  line-height: 1.6;
+  padding-top: 8rpx;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  border: none;
+}
+
+.add-plan-btn {
+  background-color: #4CAF50;
+  color: #ffffff;
+}
+
+.close-btn {
+  background-color: #f0f0f0;
+  color: #666666;
+}
+
+.save-plan-btn {
+  background-color: #4CAF50;
+  color: #ffffff;
+}
+
+.clear-plan-btn {
+  background-color: #FFEBEE;
+  color: #F44336;
+}
+
+/* Plan modal specific */
+.plan-name-input {
+  margin-bottom: 20rpx;
+}
+
+.input-label {
+  font-size: 26rpx;
+  color: #666666;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.name-input {
+  width: 100%;
+  padding: 16rpx 24rpx;
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+}
+
+.plan-summary {
+  background-color: #f8f9fa;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid #eeeeee;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-label {
+  font-size: 26rpx;
+  color: #666666;
+}
+
+.summary-value {
+  font-size: 26rpx;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.empty-plan {
+  display: flex;
+  justify-content: center;
+  padding: 40rpx 0;
+}
+
+.empty-plan-text {
+  font-size: 26rpx;
+  color: #999999;
+}
+
+.plan-recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.plan-recipe-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx;
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+}
+
+.plan-recipe-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.plan-recipe-name {
+  font-size: 26rpx;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.plan-recipe-cal {
+  font-size: 22rpx;
+  color: #999999;
+}
+
+.plan-recipe-remove {
+  font-size: 24rpx;
+  color: #F44336;
+  padding: 8rpx 16rpx;
+}
+
+/* FAB */
+.fab-btn {
+  position: fixed;
+  right: 32rpx;
+  bottom: 100rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 20rpx rgba(76, 175, 80, 0.4);
+  z-index: 999;
+}
+
+.fab-icon {
+  font-size: 44rpx;
+}
+
+.fab-badge {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  min-width: 36rpx;
+  height: 36rpx;
+  background-color: #F44336;
+  color: #ffffff;
+  font-size: 22rpx;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8rpx;
+}
+
+/* Toast */
+.toast-wrap {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2000;
+}
+
+.toast-content {
+  background-color: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  padding: 24rpx 40rpx;
+  border-radius: 16rpx;
+}
+
+.toast-text {
+  font-size: 28rpx;
+}
+
+/* Calendar */
+.calendar-modal {
+  max-height: 90vh;
+}
+
+.calendar-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+  padding: 0 10rpx;
+}
+
+.cal-nav-btn {
+  font-size: 26rpx;
+  color: #4CAF50;
+  padding: 8rpx 16rpx;
+}
+
+.cal-month-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 12rpx;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 22rpx;
+  color: #999;
+  padding: 8rpx 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8rpx;
+}
+
+.cal-day-cell {
+  aspect-ratio: 1;
+}
+
+.cal-day-cell.padding {
+  visibility: hidden;
+}
+
+.cal-day {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6rpx;
+  min-height: 80rpx;
+}
+
+.cal-day.today {
+  background: #E8F5E9;
+}
+
+.cal-day.selected {
+  background: #4CAF50;
+}
+
+.cal-day.selected .cal-day-num {
+  color: #fff;
+}
+
+.cal-day.has-plan {
+  background: #E3F2FD;
+  border: 2rpx solid #2196F3;
+}
+
+.cal-day.empty {
+  background: transparent;
+}
+
+.cal-day-num {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.cal-badge {
+  background: #2196F3;
+  border-radius: 6rpx;
+  padding: 2rpx 6rpx;
+  margin-top: 4rpx;
+}
+
+.cal-badge-text {
+  font-size: 16rpx;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.day-plan-detail {
+  margin-top: 30rpx;
+  border-top: 1rpx solid #f0f0f0;
+  padding-top: 20rpx;
+}
+
+.day-plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.day-plan-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.day-plan-delete {
+  font-size: 24rpx;
+  color: #ff4757;
+  padding: 8rpx 16rpx;
+}
+
+.day-plan-recipes {
+  background: #f9f9f9;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.day-recipe-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #eee;
+}
+
+.day-recipe-item:last-child {
+  border-bottom: none;
+}
+
+.day-recipe-name {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.day-recipe-cal {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.day-plan-add-btn {
+  background: #4CAF50;
+  color: #fff;
+  border: none;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  padding: 20rpx;
+}

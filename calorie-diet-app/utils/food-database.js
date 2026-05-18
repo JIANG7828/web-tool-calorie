@@ -130,14 +130,6 @@ const FOOD_DATABASE = [
   { id: 'fried_chicken', name: '炸鸡', category: 'fast_food', caloriePerHundred: 300, macroPerHundred: { protein: 18.0, fat: 20.0, carbs: 15.0 }, defaultPortion: 150, portions: [{ label: '块', weight: 150 }] },
   { id: 'sandwich', name: '三明治', category: 'fast_food', caloriePerHundred: 215, macroPerHundred: { protein: 10.0, fat: 8.0, carbs: 26.0 }, defaultPortion: 150, portions: [{ label: '个', weight: 150 }] },
   { id: 'hot_dog', name: '热狗', category: 'fast_food', caloriePerHundred: 260, macroPerHundred: { protein: 10.0, fat: 18.0, carbs: 15.0 }, defaultPortion: 100, portions: [{ label: '个', weight: 100 }] },
-
-  // 品牌饮品
-  { id: 'luckin_latte', name: '瑞幸拿铁', category: 'brand_drink', caloriePerHundred: 55, macroPerHundred: { protein: 2.5, fat: 2.5, carbs: 5.5 }, defaultPortion: 360, portions: [{ label: '杯', weight: 360 }] },
-  { id: 'luckin_americano', name: '瑞幸美式', category: 'brand_drink', caloriePerHundred: 5, macroPerHundred: { protein: 0.3, fat: 0, carbs: 1.0 }, defaultPortion: 360, portions: [{ label: '杯', weight: 360 }] },
-  { id: 'mixue_tea', name: '蜜雪冰城奶茶', category: 'brand_drink', caloriePerHundred: 90, macroPerHundred: { protein: 1.5, fat: 3.0, carbs: 14.0 }, defaultPortion: 500, portions: [{ label: '杯', weight: 500 }] },
-  { id: 'mixue_ice', name: '蜜雪冰城冰淇淋', category: 'brand_drink', caloriePerHundred: 180, macroPerHundred: { protein: 3.0, fat: 9.0, carbs: 22.0 }, defaultPortion: 150, portions: [{ label: '个', weight: 150 }] },
-  { id: 'chagee_milk', name: '霸王茶姬奶茶', category: 'brand_drink', caloriePerHundred: 95, macroPerHundred: { protein: 2.0, fat: 3.5, carbs: 15.0 }, defaultPortion: 500, portions: [{ label: '杯', weight: 500 }] },
-  { id: 'cotti_latte', name: '库迪拿铁', category: 'brand_drink', caloriePerHundred: 58, macroPerHundred: { protein: 2.5, fat: 2.8, carbs: 5.8 }, defaultPortion: 360, portions: [{ label: '杯', weight: 360 }] },
 ];
 
 const searchFood = (keyword) => {

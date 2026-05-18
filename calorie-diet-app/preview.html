@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>极简热量管理</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f5f6fa;max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:70px;color:#333;font-size:14px}
+.header{background:linear-gradient(135deg,#4CAF50,#45a049);color:#fff;padding:16px 16px 12px;position:sticky;top:0;z-index:100}
+.header-top{display:flex;justify-content:space-between;align-items:center}
+.header-left .greeting{font-size:13px;opacity:0.9;margin-bottom:2px}
+.header-left .name{font-size:18px;font-weight:700}
+.streak-badge{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.2);padding:6px 12px;border-radius:20px;font-size:13px;cursor:pointer;backdrop-filter:blur(4px)}
+.streak-badge .fire{font-size:16px}
+.tabs{display:flex;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;padding:12px 10px;text-align:center;cursor:pointer;font-size:12px;color:#888;border-bottom:2.5px solid transparent;white-space:nowrap}
+.tab.active{color:#4CAF50;border-bottom-color:#4CAF50}
+.page{display:none;padding:12px}
+.page.active{display:block}
+.card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+.card h3{font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.ring-container{width:110px;height:110px;position:relative;flex-shrink:0}
+.ring-container svg{transform:rotate(-90deg)}
+.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.ring-center .cal{font-size:20px;font-weight:700;color:#333}
+.ring-center .lbl{font-size:10px;color:#999}
+.target-badge{display:inline-flex;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:500}
+.target-badge.fat{background:#FFF3E0;color:#FF9800}
+.target-badge.keep{background:#E8F5E9;color:#4CAF50}
+.target-badge.muscle{background:#E3F2FD;color:#2196F3}
+.info-row{display:flex;gap:8px;margin-top:10px}
+.info-chip{flex:1;background:#f8f9fa;border-radius:10px;padding:8px 6px;text-align:center}
+.info-chip .val{font-size:13px;font-weight:600}
+.info-chip .lbl{font-size:10px;color:#999;margin-top:2px}
+.macro-row{display:flex;gap:8px;margin-top:10px}
+.macro-bar{flex:1;border-radius:10px;padding:8px;text-align:center}
+.macro-bar .val{font-size:14px;font-weight:700}
+.macro-bar .pct{font-size:10px;color:#999;margin-top:2px}
+.macro-bar .progress{height:4px;background:#e0e0e0;border-radius:2px;margin-top:4px;overflow:hidden}
+.macro-bar .progress .fill{height:100%;border-radius:2px;transition:width 0.3s}
+.meal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.meal-btn{display:flex;flex-direction:column;align-items:center;padding:10px 4px;border-radius:12px;border:1px solid #eee;background:#fff;cursor:pointer}
+.meal-btn:active{transform:scale(0.95);border-color:#4CAF50}
+.meal-btn .meal-icon{font-size:22px;margin-bottom:4px}
+.meal-btn .meal-name{font-size:12px;color:#666}
+.ai-banner{background:linear-gradient(135deg,#e3f2fd,#e8f5e9);border-radius:12px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer;border:1px solid #c5cae9}
+.ai-banner .ai-icon-wrap{width:42px;height:42px;border-radius:10px;background:#1677ff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ai-banner .ai-text .title{font-size:14px;font-weight:600;color:#1565c0}
+.ai-banner .ai-text .desc{font-size:11px;color:#64b5f6;margin-top:2px}
+.week-nav{display:flex;align-items:center;gap:2px;margin-bottom:8px}
+.wn-btn{background:none;border:none;font-size:18px;color:#4CAF50;padding:4px 8px;cursor:pointer}
+.wn-day{flex:1;text-align:center;padding:6px 2px;border-radius:8px;cursor:pointer;font-size:11px;color:#999}
+.wn-day.active{background:#4CAF50;color:#fff}
+.wn-day.today{background:#E8F5E9}
+.wn-day .d-name{font-size:10px}
+.wn-day .d-num{font-size:13px;font-weight:600}
+.water-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:10px 0}
+.water-dot{width:100%;aspect-ratio:1;border-radius:50%;border:2px solid #e0e0e0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px}
+.water-dot.filled{background:#2196f3;border-color:#2196f3;color:#fff}
+.collapsible .col-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.collapsible .col-body{margin-top:8px;display:none}
+.collapsible.open .col-body{display:block}
+.food-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0}
+.food-item:last-child{border-bottom:none}
+.food-item .fi-name{flex:1;font-size:13px}
+.food-item .fi-cal{font-size:13px;font-weight:600}
+.food-item .fi-add{width:24px;height:24px;border-radius:50%;background:#4CAF50;color:#fff;display:flex;align-items:center;justify-content:center;margin-left:8px;cursor:pointer;font-size:16px}
+.btn{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#4CAF50,#45a049);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.btn:active{opacity:0.9}
+.btn-outline{background:#fff;border:1px solid #4CAF50;color:#4CAF50}
+.btn-orange{background:linear-gradient(135deg,#FA8C16,#FFB74D);border-color:#FA8C16;color:#fff}
+.input-group{margin-bottom:10px}
+.input-group label{font-size:12px;color:#666;margin-bottom:4px;display:block}
+.input-group input,.input-group select{width:100%;padding:8px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px}
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;display:none;text-align:center}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;display:none}
+.modal-overlay.show{display:flex;align-items:flex-end}
+.modal-sheet{width:100%;max-width:480px;margin:0 auto;background:#fff;border-radius:20px 20px 0 0;max-height:90vh;overflow-y:auto}
+.modal-content-sm{width:90%;max-width:400px;margin:60px auto;background:#fff;border-radius:16px;max-height:80vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #eee}
+.modal-header h3{font-size:15px}
+.modal-close{background:none;border:none;font-size:20px;color:#999;cursor:pointer}
+.modal-search{padding:10px 16px}
+.modal-search input{width:100%;padding:8px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px}
+.food-modal-body{display:flex;height:300px}
+.food-categories{width:80px;background:#f8f9fa;overflow-y:auto;padding:8px 0;flex-shrink:0}
+.food-cat{padding:12px 8px;font-size:12px;text-align:center;cursor:pointer;color:#666;border-left:3px solid transparent}
+.food-cat.active{background:#fff;color:#1677FF;font-weight:600;border-left-color:#1677FF}
+.food-list{flex:1;overflow-y:auto;padding:12px 16px}
+.food-cat-title{font-size:15px;font-weight:600;color:#333;margin:0 0 8px;padding:4px 0 4px 4px;border-left:3px solid #4CAF50}
+.food-cat-title span{font-size:12px;font-weight:400;color:#999}
+.food-row{display:flex;align-items:center;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:6px;border:1px solid #f0f0f0;background:#fff}
+.food-row.selected{background:#E6F4FF;border-color:#1677FF}
+.food-row .fr-name{flex:1;font-size:14px;font-weight:500}
+.food-row .fr-cal{font-size:12px;margin-right:8px}
+.food-row .fr-check{width:24px;height:24px;border-radius:50%;border:2px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.food-row.selected .fr-check{background:#1677FF;border-color:#1677FF;color:#fff}
+.food-row .fr-portion{margin-top:6px;display:none;align-items:center;gap:8px}
+.food-row.selected .fr-portion{display:flex}
+.food-row .fr-portion input{width:100px;accent-color:#1677FF}
+.food-row .fr-portion span{font-size:12px;color:#666}
+.food-modal-footer{padding:12px 16px;border-top:1px solid #eee}
+.selected-foods{font-size:12px;color:#666;margin-bottom:8px}
+.confirm-btn{width:100%;padding:12px;border:none;border-radius:10px;background:#4CAF50;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.confirm-btn:disabled{background:#ccc}
+.diet-filter{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+.diet-filter::-webkit-scrollbar{display:none}
+.diet-filter-btn{flex:none;padding:6px 14px;border-radius:16px;border:1px solid #eee;background:#fff;font-size:12px;cursor:pointer;white-space:nowrap}
+.diet-filter-btn.active{background:#4CAF50;color:#fff;border-color:#4CAF50}
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:'';position:absolute;left:11px;top:0;bottom:0;width:2px;background:#e0e0e0}
+.timeline-item{position:relative;margin-bottom:16px}
+.timeline-item::before{content:'';position:absolute;left:-24px;top:4px;width:12px;height:12px;border-radius:50%;background:#4CAF50;border:2px solid #fff;box-shadow:0 0 0 2px #4CAF50;z-index:1}
+.timeline-item .tl-time{font-size:11px;color:#999;margin-bottom:4px}
+.timeline-card{background:#fff;border-radius:10px;padding:10px;border:1px solid #eee}
+.timeline-card .tc-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.timeline-card .tc-meal{font-size:13px;font-weight:600}
+.timeline-card .tc-meal .check{color:#4CAF50}
+.timeline-card .tc-cal{font-size:13px;font-weight:700;color:#4CAF50;margin-left:auto}
+.timeline-card .tc-food{font-size:12px;color:#666;margin-bottom:6px}
+.timeline-card .tc-macros{display:flex;gap:6px}
+.timeline-card .tc-macro{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500}
+.timeline-card .tc-macro.p{background:#e3f2fd;color:#1677ff}
+.timeline-card .tc-macro.f{background:#fff7e6;color:#faad14}
+.timeline-card .tc-macro.c{background:#e8f5e9;color:#52c41a}
+.recipe-tabs{display:flex;gap:8px;margin-bottom:8px}
+.recipe-tab{flex:1;text-align:center;padding:8px;border-radius:8px;background:#f8f9fa;font-size:13px;cursor:pointer}
+.recipe-tab.active{background:#4CAF50;color:#fff}
+.recipe-subtabs{display:flex;gap:6px;margin-bottom:12px}
+.recipe-subtab{flex:1;padding:6px;border-radius:16px;border:1px solid #eee;background:#fff;font-size:11px;cursor:pointer;text-align:center}
+.recipe-subtab.active{background:#E8F5E9;border-color:#4CAF50;color:#4CAF50}
+.recipe-target-bar{display:flex;gap:12px;margin-bottom:12px;padding:10px;background:#fff;border-radius:10px}
+.recipe-target-item{flex:1;text-align:center}
+.recipe-target-item .rt-val{font-size:16px;font-weight:700}
+.recipe-target-item .rt-lbl{font-size:10px;color:#999}
+.recipe-card{background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.04);cursor:pointer}
+.recipe-card .rc-header{display:flex;justify-content:space-between;margin-bottom:6px}
+.recipe-card .rc-name{font-size:14px;font-weight:600}
+.recipe-card .rc-cal{font-size:13px;color:#4CAF50;font-weight:600}
+.recipe-card .rc-desc{font-size:11px;color:#999;margin-bottom:8px}
+.recipe-card .rc-tags{display:flex;gap:6px}
+.recipe-card .rc-tag{padding:2px 8px;border-radius:4px;font-size:10px;background:#f0f0f0}
+.recipe-card .rc-actions{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.recipe-card .rc-cook{font-size:10px;color:#999}
+.recipe-card .rc-add{background:#FA8C16;color:#fff;border:none;padding:4px 10px;border-radius:12px;font-size:11px;cursor:pointer}
+.exercise-card{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,0.04);cursor:pointer}
+.exercise-card .ex-icon{width:40px;height:40px;border-radius:10px;background:#E8F5E9;display:flex;align-items:center;justify-content:center;font-size:20px;margin-right:10px}
+.exercise-card .ex-info{flex:1}
+.exercise-card .ex-name{font-size:13px;font-weight:600}
+.exercise-card .ex-meta{font-size:11px;color:#999;margin-top:2px}
+.exercise-card .ex-cal{font-size:14px;font-weight:700;color:#4CAF50}
+.exercise-cat-tabs{display:flex;gap:8px;margin-bottom:12px}
+.exercise-cat-tab{flex:1;text-align:center;padding:8px;border-radius:8px;background:#f8f9fa;font-size:13px;cursor:pointer}
+.exercise-cat-tab.active{background:#4CAF50;color:#fff}
+.today-ex-list{margin-top:12px}
+.today-ex-item{display:flex;justify-content:space-between;align-items:center;padding:10px;background:#fff;border-radius:8px;margin-bottom:6px}
+.today-ex-item .tei-name{font-size:13px;font-weight:600}
+.today-ex-item .tei-meta{font-size:11px;color:#999}
+.today-ex-item .tei-cal{font-size:13px;color:#4CAF50;font-weight:600}
+.weight-overview{display:flex;gap:10px;margin-bottom:16px}
+.weight-ov-item{flex:1;background:#fff;border-radius:10px;padding:12px;text-align:center}
+.weight-ov-item .wo-val{font-size:20px;font-weight:700;color:#4CAF50}
+.weight-ov-item .wo-lbl{font-size:10px;color:#999;margin-top:4px}
+.weight-chart{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px}
+.weight-chart h4{font-size:13px;font-weight:600;margin-bottom:10px}
+.weight-list{background:#fff;border-radius:14px;padding:14px}
+.weight-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.weight-item:last-child{border-bottom:none}
+.weight-item .wi-val{font-size:14px;font-weight:600}
+.weight-item .wi-date{font-size:11px;color:#999}
+.weight-item .wi-change{font-size:12px;font-weight:500}
+.weight-item .wi-change.up{color:#ff4757}
+.weight-item .wi-change.down{color:#4CAF50}
+.eval-score-card{background:linear-gradient(135deg,#4CAF50,#81C784);border-radius:16px;padding:30px;text-align:center;color:#fff;margin-bottom:16px}
+.eval-score-card .es-val{font-size:48px;font-weight:700}
+.eval-score-card .es-lbl{font-size:13px;opacity:0.9}
+.eval-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.eval-item{background:#fff;border-radius:12px;padding:14px;text-align:center}
+.eval-item .ei-val{font-size:20px;font-weight:700}
+.eval-item .ei-lbl{font-size:11px;color:#999;margin-top:4px}
+.eval-detail-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px}
+.eval-detail-card .edc-title{font-size:13px;font-weight:600;margin-bottom:6px}
+.eval-detail-card .edc-content{font-size:12px;color:#666;line-height:1.5}
+.stat-chart{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px}
+.stat-chart h4{font-size:13px;font-weight:600;margin-bottom:10px}
+.stat-chart canvas{width:100%;height:180px}
+.stat-mini{display:flex;gap:10px;margin-bottom:12px}
+.stat-mini-item{flex:1;background:#fff;border-radius:10px;padding:12px;text-align:center}
+.stat-mini-item .sm-val{font-size:18px;font-weight:700;color:#4CAF50}
+.stat-mini-item .sm-lbl{font-size:10px;color:#999;margin-top:4px}
+.profile-card{background:#fff;border-radius:14px;padding:20px;display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.profile-card .avatar{width:60px;height:60px;border-radius:50%;background:#E8F5E9;display:flex;align-items:center;justify-content:center;font-size:28px}
+.profile-card .pc-name{font-size:16px;font-weight:700}
+.profile-card .pc-meta{font-size:12px;color:#999;margin-top:2px}
+.profile-card .pc-edit{margin-left:auto;width:32px;height:32px;border-radius:50%;background:#f8f9fa;border:none;cursor:pointer;font-size:16px}
+.stat-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.stat-ov-item{background:#fff;border-radius:10px;padding:14px;text-align:center}
+.stat-ov-item .sov-val{font-size:18px;font-weight:700;color:#4CAF50}
+.stat-ov-item .sov-lbl{font-size:10px;color:#999;margin-top:4px}
+.checkin-card{background:linear-gradient(135deg,#FF9800,#FFB74D);border-radius:14px;padding:20px;color:#fff;display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.checkin-card .cc-icon{font-size:36px}
+.checkin-card .cc-info{flex:1}
+.checkin-card .cc-name{font-size:15px;font-weight:600}
+.checkin-card .cc-desc{font-size:12px;opacity:0.9}
+.checkin-card .cc-btn{background:rgba(255,255,255,0.3);border:none;color:#fff;padding:8px 16px;border-radius:20px;cursor:pointer;font-size:12px}
+.quick-entries{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.quick-entry{background:#fff;border-radius:12px;padding:14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.quick-entry .qe-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.quick-entry .qe-name{font-size:13px;font-weight:600}
+.quick-entry .qe-desc{font-size:10px;color:#999}
+.fixed-bottom{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#fff;padding:10px 16px;box-shadow:0 -2px 8px rgba(0,0,0,0.06);z-index:50}
+.chart-bar{display:flex;align-items:flex-end;gap:6px;height:150px;padding:10px 0}
+.chart-bar .bar{flex:1;background:linear-gradient(to top,#4CAF50,#81C784);border-radius:4px 4px 0 0;min-height:4px;position:relative}
+.chart-bar .bar .bar-val{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;color:#666;white-space:nowrap}
+.chart-bar .bar-label{text-align:center;font-size:10px;color:#999;margin-top:4px}
+.recipe-page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.recipe-page-title{font-size:16px;font-weight:600}
+.recipe-header-btns{display:flex;gap:8px}
+.recipe-header-btn{background:#fff;border:1px solid #e0e0e0;padding:4px 10px;border-radius:12px;font-size:12px;cursor:pointer}
+.recipe-header-btn.primary{background:#FA8C16;border-color:#FA8C16;color:#fff}
+.recipe-search{width:100%;padding:8px 12px;border:1px solid #e0e0e0;border-radius:24px;font-size:13px;margin-bottom:12px}
+.ai-result-card{background:#F6FFED;border:1px solid #B7EB8F;border-radius:12px;padding:12px;margin-bottom:12px}
+.ai-result-card .ai-rc-title{font-size:14px;font-weight:600;color:#389E0D;margin-bottom:8px}
+.ai-result-card .ai-rc-text{font-size:12px;color:#389E0D;line-height:1.6;margin-bottom:8px}
+.ai-result-card .ai-rc-tags{display:flex;gap:6px;flex-wrap:wrap}
+.ai-result-card .ai-rc-tag{padding:2px 8px;border-radius:4px;font-size:10px;background:#E8F5E9;color:#4CAF50;cursor:pointer}
+.meal-plan-date{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.meal-plan-date label{font-size:12px;color:#666}
+.meal-plan-date input{padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px}
+.plan-summary{background:#FFF7E6;border-radius:10px;padding:12px;margin-bottom:12px;display:flex;justify-content:space-around;text-align:center}
+.plan-summary .ps-item .ps-val{font-size:18px;font-weight:700}
+.plan-summary .ps-item .ps-lbl{font-size:10px;color:#666;display:block}
+.plan-recipe{display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #f0f0f0;border-radius:8px;margin-bottom:6px}
+.plan-recipe .pr-name{font-size:13px;font-weight:600}
+.plan-recipe .pr-tags{display:flex;gap:4px;margin-top:4px}
+.plan-recipe .pr-tag{padding:1px 6px;border-radius:4px;font-size:9px;background:#f0f0f0}
+.plan-recipe .pr-info{flex:1}
+.plan-recipe .pr-cal{font-size:11px;color:#999;margin-top:2px}
+.plan-recipe .pr-remove{background:none;border:none;color:#ff4757;font-size:18px;cursor:pointer}
+.calendar-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cal-nav-btn{background:none;border:none;font-size:14px;color:#FA8C16;padding:4px 8px;cursor:pointer}
+.cal-month-title{font-size:15px;font-weight:600}
+.calendar-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px}
+.calendar-weekdays .weekday{text-align:center;font-size:11px;color:#999;padding:4px 0}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day-cell{aspect-ratio:1;min-height:60px}
+.cal-day{width:100%;height:100%;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;cursor:pointer}
+.cal-day.today{background:#E8F5E9}
+.cal-day.selected{background:#FA8C16;color:#fff}
+.cal-day.selected .cal-day-num{color:#fff}
+.cal-day.has-plan{border:2px solid #4CAF50}
+.cal-day .cal-day-num{font-size:12px;font-weight:600;color:#333}
+.cal-day .cal-badge{font-size:8px;color:#4CAF50;margin-top:2px;text-align:center}
+.cal-day.selected .cal-badge{color:#fff}
+.day-plan-detail{margin-top:12px;padding-top:12px;border-top:1px solid #eee}
+.day-plan-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.day-plan-title{font-size:13px;font-weight:600}
+.day-plan-delete{background:none;border:none;color:#ff4757;font-size:12px;cursor:pointer}
+.day-recipe{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #f0f0f0}
+.day-recipe:last-child{border-bottom:none}
+.day-recipe .dr-name{font-size:12px}
+.day-recipe .dr-cal{font-size:11px;color:#4CAF50}
+.day-plan-btn{width:100%;padding:8px;border:none;border-radius:8px;background:#4CAF50;color:#fff;font-size:12px;cursor:pointer;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <div class="header-left">
+      <div class="greeting" id="greetingText">Hi, 用户</div>
+      <div class="name">极简热量管理</div>
+    </div>
+    <div class="streak-badge" onclick="showToast('连续打卡功能')"><span class="fire">🔥</span>连续<span id="streakCount">0</span>天</div>
+  </div>
+</div>
+
+<div class="tabs" id="mainTabs">
+  <div class="tab active" data-page="home">首页</div>
+  <div class="tab" data-page="diet">饮食</div>
+  <div class="tab" data-page="recipe">菜谱</div>
+  <div class="tab" data-page="exercise">运动</div>
+  <div class="tab" data-page="weight">体重</div>
+  <div class="tab" data-page="stats">统计</div>
+  <div class="tab" data-page="profile">我的</div>
+</div>
+
+<div id="home" class="page active"></div>
+<div id="diet" class="page"></div>
+<div id="recipe" class="page"></div>
+<div id="exercise" class="page"></div>
+<div id="weight" class="page"></div>
+<div id="stats" class="page"></div>
+<div id="profile" class="page"></div>
+
+<div class="modal-overlay" id="addFoodModal">
+  <div class="modal-sheet">
+    <div class="modal-header"><h3>添加食物</h3><button class="modal-close" onclick="closeModal('addFoodModal')">&times;</button></div>
+    <div class="modal-search"><input type="text" id="foodSearchInput" placeholder="搜索食物名称..." oninput="searchFoodModal()"></div>
+    <div class="food-modal-body">
+      <div class="food-categories" id="foodCategories"></div>
+      <div class="food-list" id="foodListPanel"></div>
+    </div>
+    <div class="food-modal-footer">
+      <div class="selected-foods" id="selectedFoodsPreview"></div>
+      <button class="confirm-btn" id="confirmAddBtn" onclick="confirmAddFoods()" disabled>确认添加</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="exerciseModal">
+  <div class="modal-content-sm">
+    <div class="modal-header"><h3 id="exModalName">运动</h3><button class="modal-close" onclick="closeModal('exerciseModal')">&times;</button></div>
+    <div style="text-align:center;padding:16px 0"><div style="font-size:48px;margin-bottom:8px" id="exModalIcon">🏃</div><div style="font-size:12px;color:#999" id="exModalMeta">MET 6.0</div></div>
+    <div class="input-group"><label>时长 (分钟)</label><input type="range" id="exDurationSlider" min="5" max="120" value="30" style="width:100%;accent-color:#4CAF50" oninput="calcExModalCal()"><div style="text-align:center;font-size:16px;font-weight:600;margin-top:4px" id="exDurationVal">30 分钟</div></div>
+    <div style="text-align:center;padding:10px 0;font-size:14px">预计消耗: <span style="font-size:20px;font-weight:700;color:#4CAF50" id="exCalPreview">0</span> 千卡</div>
+    <button class="btn" onclick="confirmExercise()">记录运动</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="recipeModal">
+  <div class="modal-content-sm">
+    <div class="modal-header"><h3 id="rcModalName">菜谱详情</h3><button class="modal-close" onclick="closeModal('recipeModal')">&times;</button></div>
+    <div id="rcModalBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="dateSelectorModal">
+  <div class="modal-content-sm">
+    <div class="modal-header"><h3>选择日期</h3><button class="modal-close" onclick="closeModal('dateSelectorModal')">&times;</button></div>
+    <div style="padding:16px;text-align:center">
+      <p style="font-size:13px;color:#666;margin-bottom:12px" id="dateSelectorText">将菜谱添加到哪天的餐单？</p>
+      <div class="input-group"><label>选择日期</label><input type="date" id="dateSelectorInput"></div>
+      <p style="font-size:11px;color:#999;margin-top:4px">可选择前后7天内的日期</p>
+    </div>
+    <div style="padding:0 16px 16px"><button class="btn btn-orange" onclick="confirmAddToMealPlan()">确认添加</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="mealPlanModal">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h3>定制餐单</h3>
+      <div style="display:flex;gap:8px">
+        <button class="modal-close" onclick="switchToCalendar()" style="font-size:12px;padding:4px 8px;border:1px solid #FA8C16;border-radius:8px;color:#FA8C16">📅 查看日历</button>
+        <button class="modal-close" onclick="saveMealPlan()" id="saveMealPlanBtn" style="font-size:12px;padding:4px 8px;background:#FA8C16;color:#fff;border:none;border-radius:8px">保存</button>
+        <button class="modal-close" onclick="closeModal('mealPlanModal')">&times;</button>
+      </div>
+    </div>
+    <div style="padding:12px 16px">
+      <div class="meal-plan-date">
+        <label>选择日期：</label>
+        <input type="date" id="mealPlanDate" onchange="loadMealPlanForDate()">
+      </div>
+      <div id="mealPlanContent"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="calendarModal">
+  <div class="modal-sheet">
+    <div class="modal-header"><h3>餐单日历</h3><button class="modal-close" onclick="closeModal('calendarModal')">&times;</button></div>
+    <div style="padding:12px 16px">
+      <div class="calendar-nav">
+        <button class="cal-nav-btn" onclick="calPrevMonth()">‹ 上月</button>
+        <span class="cal-month-title" id="calMonthTitle"></span>
+        <button class="cal-nav-btn" onclick="calNextMonth()">下月 ›</button>
+      </div>
+      <div class="calendar-weekdays">
+        <div class="weekday">一</div><div class="weekday">二</div><div class="weekday">三</div><div class="weekday">四</div><div class="weekday">五</div><div class="weekday">六</div><div class="weekday">日</div>
+      </div>
+      <div class="calendar-grid" id="calGrid"></div>
+      <div id="calDayDetail"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addWeightModal">
+  <div class="modal-content-sm">
+    <div class="modal-header"><h3>添加体重记录</h3><button class="modal-close" onclick="closeModal('addWeightModal')">&times;</button></div>
+    <div class="input-group"><label>体重 (kg)</label><input type="number" id="addWeightInput" placeholder="55.0" step="0.1"></div>
+    <button class="btn" onclick="saveWeight()">保存记录</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var foodCategories=[{id:'all',name:'常用',icon:'⭐'},{id:'staple',name:'主食',icon:'🍚'},{id:'veg',name:'素菜',icon:'🥬'},{id:'meat',name:'荤菜',icon:'🥩'},{id:'dairy',name:'奶制品',icon:'🥛'},{id:'bean_nut',name:'豆类坚果',icon:'🥜'},{id:'fruit',name:'水果',icon:'🍎'},{id:'snack',name:'零食饮料',icon:'🥤'},{id:'soup',name:'汤类',icon:'🍲'}];
+var foods=[
+{id:'c1',name:'水煮蛋',cat:'all',cal:144,p:13.3,f:8.8,c:2.8},{id:'c2',name:'牛奶',cat:'all',cal:54,p:3,f:3.2,c:3.4},{id:'c3',name:'米饭',cat:'all',cal:116,p:2.6,f:0.3,c:25.9},{id:'c4',name:'鸡胸肉',cat:'all',cal:133,p:30.6,f:1.2,c:0},{id:'c5',name:'苹果',cat:'all',cal:52,p:0.3,f:0.2,c:13.8},{id:'c6',name:'香蕉',cat:'all',cal:93,p:1.1,f:0.3,c:22},
+{id:'s1',name:'白米饭',cat:'staple',cal:116,p:2.6,f:0.3,c:25.9},{id:'s2',name:'面条',cat:'staple',cal:284,p:8.6,f:1,c:58.2},{id:'s3',name:'馒头',cat:'staple',cal:223,p:7,f:1.1,c:47},{id:'s4',name:'面包',cat:'staple',cal:265,p:8,f:3,c:50},{id:'s5',name:'饺子',cat:'staple',cal:242,p:8,f:8,c:34},{id:'s6',name:'白粥',cat:'staple',cal:46,p:1.1,f:0.3,c:9.9},{id:'s7',name:'炒饭',cat:'staple',cal:174,p:4.2,f:5.3,c:28},{id:'s8',name:'红薯',cat:'staple',cal:86,p:1.6,f:0.2,c:20.1},{id:'s9',name:'玉米',cat:'staple',cal:112,p:4,f:1.2,c:22.8},{id:'s10',name:'燕麦片',cat:'staple',cal:389,p:13,f:7,c:67},
+{id:'v1',name:'西兰花',cat:'veg',cal:27,p:2.6,f:0.4,c:4.3},{id:'v2',name:'菠菜',cat:'veg',cal:20,p:2.6,f:0.3,c:2.8},{id:'v3',name:'西红柿',cat:'veg',cal:15,p:0.9,f:0.2,c:3.5},{id:'v4',name:'黄瓜',cat:'veg',cal:15,p:0.8,f:0.2,c:2.9},{id:'v5',name:'生菜',cat:'veg',cal:13,p:1.3,f:0.2,c:2.1},{id:'v6',name:'胡萝卜',cat:'veg',cal:32,p:0.9,f:0.2,c:7.6},{id:'v7',name:'蘑菇',cat:'veg',cal:22,p:2.7,f:0.3,c:3.4},{id:'v8',name:'土豆',cat:'veg',cal:77,p:2,f:0.1,c:17.2},{id:'v9',name:'白菜',cat:'veg',cal:17,p:1.3,f:0.2,c:3.1},{id:'v10',name:'芹菜',cat:'veg',cal:13,p:0.9,f:0.1,c:2.9},
+{id:'m1',name:'鸡胸肉',cat:'meat',cal:133,p:30.6,f:1.2,c:0},{id:'m2',name:'瘦猪肉',cat:'meat',cal:143,p:20.3,f:6.3,c:0},{id:'m3',name:'瘦牛肉',cat:'meat',cal:125,p:20.2,f:4.2,c:0},{id:'m4',name:'鲈鱼',cat:'meat',cal:90,p:18,f:2,c:0},{id:'m5',name:'虾',cat:'meat',cal:93,p:18.6,f:1.6,c:0.8},{id:'m6',name:'鸡蛋',cat:'meat',cal:144,p:13.3,f:8.8,c:2.8},{id:'m7',name:'豆腐',cat:'meat',cal:81,p:8.1,f:3.7,c:4.2},{id:'m8',name:'三文鱼',cat:'meat',cal:139,p:21,f:5.8,c:0},{id:'m9',name:'鸡腿',cat:'meat',cal:181,p:20.6,f:10.2,c:0},{id:'m10',name:'排骨',cat:'meat',cal:278,p:16,f:23,c:0},
+{id:'d1',name:'纯牛奶',cat:'dairy',cal:54,p:3,f:3.2,c:3.4},{id:'d2',name:'酸奶',cat:'dairy',cal:72,p:3.1,f:3.2,c:6.5},{id:'d3',name:'奶酪',cat:'dairy',cal:328,p:25,f:25,c:2.5},{id:'d4',name:'豆浆',cat:'dairy',cal:33,p:2.8,f:1.6,c:1.6},{id:'d5',name:'黄油',cat:'dairy',cal:717,p:0.9,f:81,c:0.9},
+{id:'b1',name:'黄豆',cat:'bean_nut',cal:390,p:35,f:16,c:34},{id:'b2',name:'黑豆',cat:'bean_nut',cal:381,p:36,f:15.9,c:33},{id:'b3',name:'花生',cat:'bean_nut',cal:567,p:24.8,f:44.3,c:16},{id:'b4',name:'核桃',cat:'bean_nut',cal:646,p:15,f:58.8,c:14},{id:'b5',name:'杏仁',cat:'bean_nut',cal:579,p:21,f:49,c:22},
+{id:'f1',name:'苹果',cat:'fruit',cal:52,p:0.3,f:0.2,c:13.8},{id:'f2',name:'香蕉',cat:'fruit',cal:93,p:1.1,f:0.3,c:22},{id:'f3',name:'橙子',cat:'fruit',cal:47,p:0.9,f:0.1,c:11.4},{id:'f4',name:'葡萄',cat:'fruit',cal:69,p:0.5,f:0.2,c:17},{id:'f5',name:'西瓜',cat:'fruit',cal:25,p:0.6,f:0.1,c:5.8},{id:'f6',name:'草莓',cat:'fruit',cal:32,p:0.7,f:0.2,c:7},{id:'f7',name:'蓝莓',cat:'fruit',cal:57,p:0.7,f:0.3,c:14.5},{id:'f8',name:'猕猴桃',cat:'fruit',cal:61,p:1.1,f:0.6,c:14.5},
+{id:'n1',name:'薯片',cat:'snack',cal:548,p:6.8,f:35,c:53},{id:'n2',name:'巧克力',cat:'snack',cal:545,p:5,f:31,c:59},{id:'n3',name:'可乐',cat:'snack',cal:43,p:0,f:0,c:10.6},{id:'n4',name:'奶茶',cat:'snack',cal:69,p:1.5,f:3,c:10},{id:'n5',name:'饼干',cat:'snack',cal:434,p:8,f:13,c:73},
+{id:'t1',name:'紫菜蛋花汤',cat:'soup',cal:18,p:1.5,f:0.8,c:1.2},{id:'t2',name:'西红柿蛋汤',cat:'soup',cal:22,p:1.8,f:1,c:1.5},{id:'t3',name:'鸡汤',cat:'soup',cal:35,p:3,f:2,c:1},{id:'t4',name:'排骨汤',cat:'soup',cal:58,p:4,f:3.5,c:2},{id:'t5',name:'鱼汤',cat:'soup',cal:28,p:3,f:1.2,c:0.8}
+];
+var recipes=[
+{id:'r1',name:'宫保鸡丁',cat:'chinese',meal:'lunch',cal:280,p:25,f:12,c:18,desc:'经典川菜，鸡丁配花生',cookTime:20,method:'1.鸡丁腌制10分钟\n2.炒香花生米\n3.炒鸡丁至变色\n4.加调料翻炒均匀'},
+{id:'r2',name:'清蒸鲈鱼',cat:'chinese',meal:'dinner',cal:120,p:22,f:3,c:0,desc:'清淡鲜美，低脂高蛋白',cookTime:15,method:'1.鲈鱼洗净划刀\n2.加姜片葱段\n3.水开后蒸10分钟\n4.淋热油酱油'},
+{id:'r3',name:'番茄炒蛋',cat:'chinese',meal:'lunch',cal:92,p:5,f:6,c:4,desc:'家常经典',cookTime:10,method:'1.鸡蛋打散炒熟\n2.番茄切块炒软\n3.混合翻炒加盐'},
+{id:'r4',name:'鸡胸肉沙拉',cat:'light',meal:'lunch',cal:180,p:28,f:5,c:8,desc:'低卡高蛋白',cookTime:15,method:'1.鸡胸煮熟切块\n2.蔬菜洗净切好\n3.混合加沙拉酱'},
+{id:'r5',name:'燕麦早餐碗',cat:'light',meal:'breakfast',cal:220,p:8,f:6,c:35,desc:'营养均衡早餐',cookTime:10,method:'1.燕麦加水煮5分钟\n2.加入水果坚果\n3.淋少许蜂蜜'},
+{id:'r6',name:'紫薯三明治',cat:'light',meal:'breakfast',cal:195,p:7,f:5,c:32,desc:'低GI碳水',cookTime:15,method:'1.紫薯蒸熟捣泥\n2.涂在全麦面包上\n3.夹入蔬菜鸡蛋'},
+{id:'r7',name:'麻婆豆腐',cat:'chinese',meal:'dinner',cal:150,p:10,f:8,c:10,desc:'经典川菜',cookTime:15,method:'1.豆腐切块焯水\n2.炒香肉末豆豉\n3.加豆腐和调料'},
+{id:'r8',name:'凉拌黄瓜',cat:'chinese',meal:'lunch',cal:25,p:1,f:0.5,c:3,desc:'清爽小菜',cookTime:5,method:'1.黄瓜拍碎切段\n2.加蒜末调料\n3.拌匀腌制5分钟'},
+{id:'r9',name:'牛油果吐司',cat:'light',meal:'breakfast',cal:240,p:6,f:14,c:22,desc:'健康脂肪',cookTime:5,method:'1.牛油果切半捣碎\n2.涂在全麦吐司上\n3.撒盐黑胡椒'},
+{id:'r10',name:'虾仁西兰花',cat:'chinese',meal:'dinner',cal:110,p:18,f:2,c:5,desc:'低卡高蛋白',cookTime:10,method:'1.虾仁焯水去腥\n2.西兰花焯水\n3.大火快炒调味'},
+{id:'r11',name:'水果酸奶杯',cat:'light',meal:'breakfast',cal:160,p:6,f:4,c:24,desc:'清爽早餐',cookTime:5,method:'1.酸奶倒入杯中\n2.加入切好的水果\n3.撒坚果碎'},
+{id:'r12',name:'红烧肉',cat:'chinese',meal:'dinner',cal:380,p:16,f:28,c:12,desc:'经典家常菜',cookTime:60,method:'1.五花肉焯水\n2.炒糖色至红亮\n3.加调料炖煮40分钟'}
+];
+var exercises=[
+{id:'e1',name:'散步',met:3.5,cat:'daily',icon:'🚶',cal60:105},{id:'e2',name:'快走',met:5,cat:'daily',icon:'🚶‍♂️',cal60:150},{id:'e3',name:'家务',met:3,cat:'daily',icon:'🧹',cal60:90},{id:'e4',name:'爬楼梯',met:8,cat:'daily',icon:'🪜',cal60:240},{id:'e5',name:'骑自行车',met:6,cat:'daily',icon:'🚲',cal60:180},{id:'e6',name:'瑜伽',met:3,cat:'daily',icon:'🧘',cal60:90},
+{id:'e7',name:'跑步',met:8,cat:'sport',icon:'🏃',cal60:240},{id:'e8',name:'游泳',met:7,cat:'sport',icon:'🏊',cal60:210},{id:'e9',name:'篮球',met:6.5,cat:'sport',icon:'🏀',cal60:195},{id:'e10',name:'足球',met:7,cat:'sport',icon:'⚽',cal60:210},{id:'e11',name:'跳绳',met:10,cat:'sport',icon:'🪢',cal60:300},{id:'e12',name:'健身',met:5,cat:'sport',icon:'🏋️',cal60:150},{id:'e13',name:'羽毛球',met:5.5,cat:'sport',icon:'🏸',cal60:165},{id:'e14',name:'乒乓球',met:4,cat:'sport',icon:'🏓',cal60:120},{id:'e15',name:'舞蹈',met:5,cat:'sport',icon:'💃',cal60:150},{id:'e16',name:'爬山',met:7,cat:'sport',icon:'⛰️',cal60:210}
+];
+var records=JSON.parse(localStorage.getItem('calorie_records')||'[]');
+var weightRecords=JSON.parse(localStorage.getItem('weight_records')||'[]');
+var exRecords=JSON.parse(localStorage.getItem('exercise_records')||'[]');
+var savedMealPlans=JSON.parse(localStorage.getItem('saved_meal_plans')||'[]');
+var profile=JSON.parse(localStorage.getItem('calorie_profile')||'{"nickname":"","gender":"female","age":25,"height":160,"weight":55,"targetWeight":52,"target":"fat","waterGoal":8}');
+var checkins=JSON.parse(localStorage.getItem('checkin_records')||'[]');
+var currentMealType='lunch';
+var foodModalCat='all';
+var foodModalSelected={};
+var foodModalSearch='';
+var currentDietFilter='all';
+var selectedRecipeCat='all';
+var selectedRecipeMeal='all';
+var currentExFilter='all';
+var selectedExercise=null;
+var weekOffset=0;
+var selectedDate=getTodayStr();
+var selectedPlanDate=getTodayStr();
+var pendingAddRecipe=null;
+var calYear=new Date().getFullYear();
+var calMonth=new Date().getMonth()+1;
+var selectedCalDate='';
+
+function save(){
+  localStorage.setItem('calorie_records',JSON.stringify(records));
+  localStorage.setItem('weight_records',JSON.stringify(weightRecords));
+  localStorage.setItem('exercise_records',JSON.stringify(exRecords));
+  localStorage.setItem('saved_meal_plans',JSON.stringify(savedMealPlans));
+  localStorage.setItem('calorie_profile',JSON.stringify(profile));
+  localStorage.setItem('checkin_records',JSON.stringify(checkins));
+}
+function getTodayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function getTargetCal(){var t=profile.target||'fat';if(t==='fat')return 1300;if(t==='muscle')return 2000;return 1600;}
+function calcBMR(){if(profile.gender==='male')return Math.round(10*profile.weight+6.25*profile.height-5*profile.age+5);return Math.round(10*profile.weight+6.25*profile.height-5*profile.age-161);}
+function getWeekDates(){var today=new Date();var start=new Date(today);var dow=today.getDay()===0?6:today.getDay()-1;start.setDate(today.getDate()-dow-weekOffset*7);var dates=[];for(var i=0;i<7;i++){var d=new Date(start);d.setDate(start.getDate()+i);dates.push(d);}return dates;}
+function formatDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function isToday(d){var today=new Date();return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth()&&d.getDate()===today.getDate();}
+function getDayName(d){var names=['日','一','二','三','四','五','六'];return '周'+names[d.getDay()];}
+function getWeekRange(){var dates=getWeekDates();return formatDate(dates[0])+' ~ '+formatDate(dates[6]);}
+
+function renderAll(){renderHome();renderDiet();renderRecipe();renderExercise();renderWeight();renderStats();renderProfile();}
+
+function renderHome(){
+  var today=getTodayStr();
+  var todayRecords=records.filter(function(r){return r.date===today});
+  var total=todayRecords.reduce(function(s,r){return s+r.calorie},0);
+  var p=0,f=0,c=0;todayRecords.forEach(function(r){p+=r.p||0;f+=r.f||0;c+=r.c||0;});
+  p=Math.round(p);f=Math.round(f);c=Math.round(c);
+  var goal=getTargetCal();var remain=Math.max(goal-total,0);var pct=Math.min(total/goal*100,100);
+  var bmr=calcBMR();var tdee=Math.round(bmr*1.2);var deficit=tdee-total;
+  var streak=calcStreak();
+  var targetMap={fat:'减脂模式',keep:'维持模式',muscle:'增肌模式'};
+  var dates=getWeekDates();
+  var weekHtml='';
+  dates.forEach(function(d){
+    var ds=formatDate(d);var active=ds===selectedDate?'active':'';var todayCls=isToday(d)?'today':'';
+    weekHtml+='<div class="wn-day '+active+' '+todayCls+'" onclick="selectDate(\''+ds+'\')"><div class="d-name">'+getDayName(d)+'</div><div class="d-num">'+d.getDate()+'</div></div>';
+  });
+  var meals={breakfast:[],lunch:[],dinner:[],snack:[]};
+  todayRecords.forEach(function(r){if(meals[r.mealType])meals[r.mealType].push(r);});
+  var mealNames={breakfast:'早餐',lunch:'午餐',dinner:'晚餐',snack:'加餐'};
+  var mealIcons={breakfast:'☕',lunch:'🍚',dinner:'🥗',snack:'🍪'};
+  var recordsHtml='';
+  ['breakfast','lunch','dinner','snack'].forEach(function(m){
+    if(meals[m].length===0)return;
+    var mealTotal=meals[m].reduce(function(s,r){return s+r.calorie},0);
+    recordsHtml+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:4px"><span>'+mealIcons[m]+' '+mealNames[m]+' ('+meals[m].length+'种)</span><span style="font-weight:600;color:#4CAF50">'+mealTotal+'千卡</span></div>';
+    meals[m].forEach(function(r){
+      recordsHtml+='<div class="food-item"><span class="fi-name">'+r.name+'</span><span class="fi-cal">'+r.calorie+'千卡</span><span class="fi-add" onclick="deleteRecord(\''+r.id+'\')">&times;</span></div>';
+    });
+    recordsHtml+='</div>';
+  });
+  var waterCount=getWaterCount();var waterDots='';for(var i=0;i<8;i++){waterDots+='<div class="water-dot '+(i<waterCount?'filled':'')+'" onclick="addWater()">'+(i<waterCount?'💧':'○')+'</div>';}
+  var suggestion=generateAiSuggestion(total,goal,p,f,c,tdee);
+  var html='<div class="card"><div style="margin-bottom:8px"><span class="target-badge '+(profile.target||'keep')+'">'+(targetMap[profile.target]||'维持模式')+'</span></div>';
+  html+='<div class="week-nav"><button class="wn-btn" onclick="prevWeek()">&#9664;</button>'+weekHtml+'<button class="wn-btn" onclick="nextWeek()">&#9654;</button></div></div>';
+  html+='<div class="card"><div style="display:flex;align-items:center;justify-content:space-between"><div style="flex:1"><div style="font-size:12px;color:#999">今日摄入</div><div style="display:flex;align-items:baseline;gap:4px;margin:4px 0"><span style="font-size:24px;font-weight:700">'+total+'</span><span style="font-size:12px;color:#666">/ '+goal+' 千卡</span></div><p style="font-size:11px;font-weight:500">'+(remain>0?'剩余 '+remain+' 千卡':'超标 '+Math.abs(remain)+' 千卡')+'</p>';
+  html+='<div class="info-row"><div class="info-chip"><div class="val">'+tdee+'</div><div class="lbl">基础消耗</div></div><div class="info-chip"><div class="val">'+goal+'</div><div class="lbl">目标摄入</div></div><div class="info-chip"><div class="val" style="color:#FA8C16">'+(deficit>=0?'+':'')+deficit+'</div><div class="lbl">热量缺口</div></div></div>';
+  html+='<div class="macro-row"><div class="macro-bar" style="background:#e8f5e9"><div class="val" style="color:#4CAF50">'+p+'g</div><div class="pct">蛋白质</div><div class="progress"><div class="fill" style="width:'+Math.min(p/150*100,100)+'%;background:#4CAF50"></div></div></div>';
+  html+='<div class="macro-bar" style="background:#fff7e6"><div class="val" style="color:#FAAD14">'+f+'g</div><div class="pct">脂肪</div><div class="progress"><div class="fill" style="width:'+Math.min(f/60*100,100)+'%;background:#FAAD14"></div></div></div>';
+  html+='<div class="macro-bar" style="background:#e3f2fd"><div class="val" style="color:#1677FF">'+c+'g</div><div class="pct">碳水</div><div class="progress"><div class="fill" style="width:'+Math.min(c/300*100,100)+'%;background:#1677FF"></div></div></div></div></div>';
+  html+='<div class="ring-container"><svg width="110" height="110"><circle cx="55" cy="55" r="48" stroke="#e0e0e0" stroke-width="8" fill="none"/><circle cx="55" cy="55" r="48" stroke="'+(pct>100?'#ff4757':'#4CAF50')+'" stroke-width="8" fill="none" stroke-dasharray="'+2*Math.PI*48+'" stroke-dashoffset="'+2*Math.PI*48*(1-pct/100)+'" stroke-linecap="round"/><text x="55" y="48" text-anchor="middle" fill="'+(pct>100?'#ff4757':'#333')+'" font-size="20" font-weight="700">'+total+'</text><text x="55" y="65" text-anchor="middle" fill="#999" font-size="10">千卡</text></svg></div></div></div>';
+  html+='<div class="ai-banner" onclick="showToast(\'AI拍照识别\')"><div class="ai-icon-wrap">📷</div><div class="ai-text"><div class="title">AI 拍照识食物</div><div class="desc">拍照即可自动识别食物热量</div></div></div>';
+  html+='<div class="meal-grid"><div class="meal-btn" onclick="openAddFoodModal(\'breakfast\')"><span class="meal-icon">☀️</span><span class="meal-name">早餐</span></div><div class="meal-btn" onclick="openAddFoodModal(\'lunch\')"><span class="meal-icon">🌞</span><span class="meal-name">午餐</span></div><div class="meal-btn" onclick="openAddFoodModal(\'dinner\')"><span class="meal-icon">🌙</span><span class="meal-name">晚餐</span></div><div class="meal-btn" onclick="openAddFoodModal(\'snack\')"><span class="meal-icon">🍎</span><span class="meal-name">加餐</span></div></div>';
+  var dayPlan=savedMealPlans.find(function(p){return p.date===today});
+  if(dayPlan&&dayPlan.recipes&&dayPlan.recipes.length>0){
+    var planTotal=dayPlan.recipes.reduce(function(s,r){return s+r.calorie},0);
+    html+='<div class="card"><h3><span class="icon">📋</span>定制餐单 (今日)</h3>';
+    dayPlan.recipes.forEach(function(r){html+='<div class="food-item"><span class="fi-name">'+r.name+'</span><span class="fi-cal">'+r.calorie+'千卡</span><span class="fi-add" onclick="addPlanRecipeToRecord(\''+r.id+'\')">+</span></div>';});
+    html+='<div style="margin-top:8px;font-size:12px;color:#666">总计: '+planTotal+' 千卡</div></div>';
+  }
+  html+='<div class="card collapsible" id="waterCard"><div class="col-header" onclick="toggleCollapsible(\'waterCard\')"><h3><span class="icon">💧</span>饮水记录</h3><span>'+waterCount+'/8 杯</span></div><div class="col-body"><div class="water-grid">'+waterDots+'</div></div></div>';
+  html+='<div class="card collapsible open" id="recordsCard"><div class="col-header" onclick="toggleCollapsible(\'recordsCard\')"><h3><span class="icon">🍽️</span>食物记录 ('+todayRecords.length+'条 · '+total+'千卡)</h3><span>'+(todayRecords.length>0?'▼':'▶')+'</span></div><div class="col-body">'+(recordsHtml||'<p style="text-align:center;color:#999;padding:20px">暂无记录</p>')+'</div></div>';
+  if(suggestion){html+='<div class="card"><h3><span class="icon">🤖</span>AI 智能建议</h3><p style="font-size:12px;color:#666;line-height:1.6">'+suggestion+'</p></div>';}
+  document.getElementById('home').innerHTML=html;
+  document.getElementById('streakCount').textContent=streak;
+  var nick=profile.nickname||'用户';document.getElementById('greetingText').textContent='Hi, '+nick;
+}
+
+function renderDiet(){
+  var today=selectedDate||getTodayStr();
+  var todayRecords=records.filter(function(r){return r.date===today});
+  if(currentDietFilter!=='all')todayRecords=todayRecords.filter(function(r){return r.mealType===currentDietFilter});
+  todayRecords.sort(function(a,b){return b.timestamp-a.timestamp;});
+  var total=todayRecords.reduce(function(s,r){return s+r.calorie},0);
+  var allToday=records.filter(function(r){return r.date===today});
+  var hasMeals={breakfast:false,lunch:false,dinner:false,snack:false};
+  allToday.forEach(function(r){hasMeals[r.mealType]=true;});
+  var mealNames={breakfast:'早餐',lunch:'午餐',dinner:'晚餐',snack:'加餐'};
+  var mealIcons={breakfast:'☀️',lunch:'🌞',dinner:'🌙',snack:'🍎'};
+  var html='<div style="display:flex;justify-content:space-between;font-size:12px;color:#999;margin-bottom:12px"><span>'+today+' · 今日摄入 <b style="color:#4CAF50">'+total+'</b> 千卡</span></div>';
+  html+='<div class="diet-filter" id="dietFilter">';
+  var filters=[{v:'all',l:'全部'},{v:'breakfast',l:'早餐',h:hasMeals.breakfast},{v:'lunch',l:'午餐',h:hasMeals.lunch},{v:'dinner',l:'晚餐',h:hasMeals.dinner},{v:'snack',l:'加餐',h:hasMeals.snack}];
+  filters.forEach(function(f){
+    html+='<button class="diet-filter-btn '+(currentDietFilter===f.v?'active':'')+'" onclick="filterDiet(\''+f.v+'\')">'+(f.h?'✓':'')+' '+f.l+'</button>';
+  });
+  html+='</div>';
+  if(todayRecords.length===0){html+='<div style="text-align:center;padding:60px 0;color:#999"><div style="font-size:60px;margin-bottom:10px">🍽️</div><p>暂无饮食记录</p><p style="font-size:12px;margin-top:4px">点击"记录饮食"添加第一条</p></div>';}
+  else{
+    html+='<div class="timeline">';
+    todayRecords.forEach(function(r){
+      html+='<div class="timeline-item"><div class="tl-time">'+(r.time||'')+'</div><div class="timeline-card"><div class="tc-header"><span class="tc-meal">'+(mealIcons[r.mealType]||'🍽')+' '+mealNames[r.mealType]+(hasMeals[r.mealType]?' <span class="check">✓</span>':'')+'</span><span class="tc-cal">'+r.calorie+' kcal</span></div><div class="tc-food">'+r.name+' ('+r.weight+'g)</div><div class="tc-macros"><span class="tc-macro p">P '+(r.p||0)+'g</span><span class="tc-macro f">F '+(r.f||0)+'g</span><span class="tc-macro c">C '+(r.c||0)+'g</span></div></div></div>';
+    });
+    html+='</div>';
+  }
+  html+='<div class="fixed-bottom"><button class="btn" onclick="openAddFoodModal(\'lunch\')">记录饮食</button></div>';
+  document.getElementById('diet').innerHTML=html;
+}
+
+function renderRecipe(){
+  var goal=getTargetCal();var today=getTodayStr();
+  var todayRecords=records.filter(function(r){return r.date===today});
+  var intake=todayRecords.reduce(function(s,r){return s+r.calorie},0);
+  var remain=Math.max(goal-intake,0);
+  var filtered=recipes;
+  if(selectedRecipeCat!=='all')filtered=filtered.filter(function(r){return r.cat===selectedRecipeCat;});
+  if(selectedRecipeMeal!=='all')filtered=filtered.filter(function(r){return r.meal===selectedRecipeMeal;});
+  var html='<div class="recipe-page-header"><div class="recipe-page-title">推荐菜谱</div><div class="recipe-header-btns"><button class="recipe-header-btn" onclick="openCalendar()">📅 餐单日历</button><button class="recipe-header-btn primary" onclick="openMealPlanModal()">⭐ 定制餐单</button></div></div>';
+  html+='<div class="recipe-tabs"><div class="recipe-tab '+(selectedRecipeCat==='all'?'active':'')+'" onclick="setRecipeCat(\'all\')">全部</div><div class="recipe-tab '+(selectedRecipeCat==='chinese'?'active':'')+'" onclick="setRecipeCat(\'chinese\')">中餐</div><div class="recipe-tab '+(selectedRecipeCat==='light'?'active':'')+'" onclick="setRecipeCat(\'light\')">轻食</div></div>';
+  html+='<div class="recipe-subtabs"><div class="recipe-subtab '+(selectedRecipeMeal==='all'?'active':'')+'" onclick="setRecipeMeal(\'all\')">全部</div><div class="recipe-subtab '+(selectedRecipeMeal==='breakfast'?'active':'')+'" onclick="setRecipeMeal(\'breakfast\')">早餐</div><div class="recipe-subtab '+(selectedRecipeMeal==='lunch'?'active':'')+'" onclick="setRecipeMeal(\'lunch\')">午餐</div><div class="recipe-subtab '+(selectedRecipeMeal==='dinner'?'active':'')+'" onclick="setRecipeMeal(\'dinner\')">晚餐</div></div>';
+  html+='<input class="recipe-search" placeholder="搜索菜谱..." oninput="searchRecipe(this.value)">';
+  html+='<div class="recipe-target-bar"><div class="recipe-target-item"><div class="rt-val">'+goal+'</div><div class="rt-lbl">目标</div></div><div class="recipe-target-item"><div class="rt-val" style="color:#4CAF50">'+intake+'</div><div class="rt-lbl">已摄入</div></div><div class="recipe-target-item"><div class="rt-val" style="color:#2196F3">'+remain+'</div><div class="rt-lbl">剩余</div></div></div>';
+  if(intake>0){html+='<div class="ai-result-card"><div class="ai-rc-title">🤖 AI 智能推荐</div><div class="ai-rc-text">根据今日摄入，建议补充'+(remain>300?'富含蛋白质的食物':'清淡蔬菜')+'，注意控制'+(remain<200?'热量':'份量')+'。</div><div class="ai-rc-tags"><span class="ai-rc-tag" onclick="openRecipeModal(\'r4\')">鸡胸肉沙拉</span><span class="ai-rc-tag" onclick="openRecipeModal(\'r2\')">清蒸鲈鱼</span><span class="ai-rc-tag" onclick="openRecipeModal(\'r10\')">虾仁西兰花</span></div></div>';}
+  var todayPlan=savedMealPlans.find(function(p){return p.date===selectedPlanDate});
+  var planRecipes=todayPlan?todayPlan.recipes:[];
+  filtered.forEach(function(r){
+    var isInPlan=planRecipes.some(function(pr){return pr.id===r.id});
+    html+='<div class="recipe-card" onclick="openRecipeModal(\''+r.id+'\')"><div class="rc-header"><span class="rc-name">'+r.name+'</span><span class="rc-cal">'+r.calorie+'千卡</span></div><div class="rc-desc">'+r.desc+'</div><div class="rc-tags"><span class="rc-tag">'+(r.cat==='chinese'?'中餐':'轻食')+'</span><span class="rc-tag">'+r.meal+'</span><span class="rc-tag">🕐'+r.cookTime+'分钟</span></div><div class="rc-actions"><span class="rc-cook"></span><button class="rc-add" onclick="event.stopPropagation();addToMealPlan(\''+r.id+'\')">'+(isInPlan?'已在餐单':'加入餐单')+'</button></div></div>';
+  });
+  if(filtered.length===0)html+='<div style="text-align:center;padding:40px;color:#999">暂无匹配的菜谱</div>';
+  document.getElementById('recipe').innerHTML=html;
+}
+
+function renderExercise(){
+  var today=getTodayStr();var todayEx=exRecords.filter(function(r){return r.date===today;});
+  var totalCal=todayEx.reduce(function(s,r){return s+r.calorie},0);
+  var filtered=exercises.filter(function(e){return currentExFilter==='all'||e.cat===currentExFilter;});
+  var html='<div class="card"><h3><span class="icon">🏃</span>今日运动</h3><div style="text-align:center;padding:10px 0"><span style="font-size:32px;font-weight:700;color:#4CAF50">'+totalCal+'</span><span style="font-size:12px;color:#999;margin-left:4px">千卡</span></div></div>';
+  html+='<div class="exercise-cat-tabs"><div class="exercise-cat-tab '+(currentExFilter==='all'?'active':'')+'" onclick="filterExercise(\'all\')">日常活动</div><div class="exercise-cat-tab '+(currentExFilter==='sport'?'active':'')+'" onclick="filterExercise(\'sport\')">体育运动</div></div>';
+  filtered.forEach(function(e){
+    html+='<div class="exercise-card" onclick="openExerciseModal(\''+e.id+'\')"><div class="ex-icon">'+e.icon+'</div><div class="ex-info"><div class="ex-name">'+e.name+'</div><div class="ex-meta">MET '+e.met+' · 60分钟 '+e.cal60+'千卡</div></div><div class="ex-cal">'+e.cal60+'</div></div>';
+  });
+  if(todayEx.length>0){
+    html+='<div class="card"><h3>今日运动记录</h3>';
+    todayEx.forEach(function(r){
+      html+='<div class="today-ex-item"><div><div class="tei-name">'+r.name+'</div><div class="tei-meta">'+r.duration+'分钟</div></div><div class="tei-cal">'+r.calorie+'千卡</div></div>';
+    });
+    html+='</div>';
+  }
+  document.getElementById('exercise').innerHTML=html;
+}
+
+function renderWeight(){
+  var initW=profile.weight||55;var currentW=profile.weight||55;var targetW=profile.targetWeight||52;
+  var recent=weightRecords.slice(-7).reverse();
+  var html='<div class="weight-overview"><div class="weight-ov-item"><div class="wo-val">'+initW+'</div><div class="wo-lbl">初始体重(kg)</div></div><div class="weight-ov-item"><div class="wo-val">'+currentW+'</div><div class="wo-lbl">当前体重(kg)</div></div><div class="weight-ov-item"><div class="wo-val">'+targetW+'</div><div class="wo-lbl">目标体重(kg)</div></div></div>';
+  html+='<div class="weight-chart"><h4>体重趋势 (近30次)</h4><canvas id="weightChartSVG" width="400" height="180"></canvas></div>';
+  html+='<div class="card"><h3><span class="icon">📋</span>近期记录</h3>';
+  if(recent.length===0)html+='<p style="text-align:center;color:#999;padding:20px">暂无记录</p>';
+  else{
+    recent.forEach(function(r,i){
+      var prev=recent[i+1];var change=prev?(r.weight-prev.weight).toFixed(1):'--';
+      var cls=parseFloat(change)>0?'up':(parseFloat(change)<0?'down':'');
+      html+='<div class="weight-item"><div><div class="wi-val">'+r.weight+' kg</div><div class="wi-date">'+r.date+'</div></div><div class="wi-change '+cls+'">'+(parseFloat(change)>0?'+':'')+change+'</div></div>';
+    });
+  }
+  html+='</div><div class="fixed-bottom"><button class="btn" onclick="openModal(\'addWeightModal\')">+ 添加体重记录</button></div>';
+  document.getElementById('weight').innerHTML=html;
+  setTimeout(drawWeightChart,100);
+}
+
+function renderStats(){
+  var html='<div class="stat-chart"><h4>热量趋势 (14天)</h4><div id="calorieChart" class="chart-bar"></div></div>';
+  html+='<div class="stat-chart"><h4>营养素分布</h4><canvas id="macroChartCanvas" width="400" height="150"></canvas></div>';
+  html+='<div class="stat-mini"><div class="stat-mini-item"><div class="sm-val">'+exRecords.length+'</div><div class="sm-lbl">运动次数</div></div><div class="stat-mini-item"><div class="sm-val">'+exRecords.reduce(function(s,r){return s+r.calorie},0)+'</div><div class="sm-lbl">总消耗</div></div><div class="stat-mini-item"><div class="sm-val">'+(exRecords.length>0?Math.round(exRecords.reduce(function(s,r){return s+r.calorie},0)/exRecords.length):0)+'</div><div class="sm-lbl">平均消耗</div></div></div>';
+  html+='<div class="stat-chart"><h4>达标率统计</h4><div id="achievementStats"></div></div>';
+  document.getElementById('stats').innerHTML=html;
+  setTimeout(function(){drawCalorieChart();drawMacroChart();calcAchievement();},150);
+}
+
+function renderProfile(){
+  var nick=profile.nickname||'用户';var g=profile.gender==='male'?'男':'女';
+  var bmi=(profile.weight/((profile.height/100)*(profile.height/100))).toFixed(1);
+  var bmiLabel=bmi<18.5?'偏瘦':(bmi<24?'正常':(bmi<28?'偏胖':'肥胖'));
+  var bmiColor=bmi<18.5?'#2196F3':(bmi<24?'#4CAF50':(bmi<28?'#FF9800':'#F44336'));
+  var streak=calcStreak();
+  var totalRecords=records.length;var days=new Set(records.map(function(r){return r.date;})).size;
+  var html='<div class="profile-card"><div class="avatar">👤</div><div style="flex:1"><div class="pc-name">'+nick+'</div><div class="pc-meta">'+g+' · '+profile.age+'岁 · '+profile.height+'cm · '+profile.weight+'kg</div></div><button class="pc-edit" onclick="editProfile()">✎</button></div>';
+  html+='<div class="card"><h3><span class="icon">🎯</span>目标设置</h3><div class="input-group"><label>目标</label><select onchange="profile.target=this.value;save();renderAll()"><option value="fat"'+(profile.target==='fat'?' selected':'')+'>减脂</option><option value="keep"'+(profile.target==='keep'?' selected':'')+'>维持</option><option value="muscle"'+(profile.target==='muscle'?' selected':'')+'>增肌</option></select></div></div>';
+  html+='<div class="card"><h3>BMI 指数</h3><div style="text-align:center;font-size:32px;font-weight:700;color:'+bmiColor+'">'+bmi+'</div><div style="text-align:center;font-size:13px">'+bmiLabel+'</div><div style="margin:10px 0;background:#e0e0e0;border-radius:4px;height:8px;position:relative"><div class="bmi-pointer" style="left:'+Math.min(Math.max((bmi-15)/25*100,0),100)+'%"></div></div></div>';
+  var initialWeight=weightRecords.length>0?weightRecords[0].weight:profile.weight;
+  html+='<div class="stat-overview"><div class="stat-ov-item"><div class="sov-val">'+totalRecords+'</div><div class="sov-lbl">记录次数</div></div><div class="stat-ov-item"><div class="sov-val">'+days+'</div><div class="sov-lbl">健康天数</div></div><div class="stat-ov-item"><div class="sov-val">'+Math.max(0,(initialWeight-profile.weight)*2).toFixed(1)+'</div><div class="sov-lbl">累计减重(斤)</div></div></div>';
+  html+='<div class="checkin-card"><div class="cc-icon">🔥</div><div class="cc-info"><div class="cc-name">打卡记录</div><div class="cc-desc">连续打卡 <span id="checkinStreak">'+streak+'</span> 天 · 积分 '+calcPoints()+'</div></div><button class="cc-btn" onclick="doCheckIn()">今日打卡</button></div>';
+  html+='<div class="quick-entries"><div class="quick-entry" onclick="switchTab(\'weight\')"><div class="qe-icon" style="background:#E3F2FD">⚖️</div><div><div class="qe-name">体重管理</div><div class="qe-desc">查看趋势</div></div></div>';
+  html+='<div class="quick-entry" onclick="switchTab(\'stats\')"><div class="qe-icon" style="background:#FFF3E0">📊</div><div><div class="qe-name">数据统计</div><div class="qe-desc">趋势分析</div></div></div>';
+  html+='<div class="quick-entry" onclick="showToast(\'食物数据库\')"><div class="qe-icon" style="background:#E8F5E9">🔍</div><div><div class="qe-name">食物库</div><div class="qe-desc">分类浏览</div></div></div>';
+  html+='<div class="quick-entry" onclick="showToast(\'会员功能\')"><div class="qe-icon" style="background:#F3E5F5">👑</div><div><div class="qe-name">会员中心</div><div class="qe-desc">权益详情</div></div></div></div>';
+  document.getElementById('profile').innerHTML=html;
+}
+
+function init(){
+  selectedDate=getTodayStr();selectedPlanDate=getTodayStr();
+  renderAll();
+  document.querySelectorAll('#mainTabs .tab').forEach(function(tab){
+    tab.addEventListener('click',function(){switchTab(this.dataset.page);});
+  });
+}
+function switchTab(page){
+  document.querySelectorAll('#mainTabs .tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('#mainTabs .tab[data-page="'+page+'"]').forEach(function(t){t.classList.add('active');});
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.getElementById(page).classList.add('active');
+  if(page==='home')renderHome();else if(page==='diet')renderDiet();else if(page==='recipe')renderRecipe();else if(page==='exercise')renderExercise();else if(page==='weight')renderWeight();else if(page==='stats')renderStats();else if(page==='profile')renderProfile();
+}
+function openModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},1500);}
+function toggleCollapsible(id){document.getElementById(id).classList.toggle('open');}
+function selectDate(ds){selectedDate=ds;renderHome();renderDiet();}
+function prevWeek(){weekOffset++;renderAll();}
+function nextWeek(){if(weekOffset>0)weekOffset--;renderAll();}
+function addWater(){var today=getTodayStr();records.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),name:'饮水',calorie:0,weight:200,mealType:'snack',p:0,f:0,c:0,date:today,time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),timestamp:Date.now()});save();renderAll();showToast('已添加饮水');}
+function deleteRecord(id){records=records.filter(function(r){return r.id!==id;});save();renderAll();}
+function filterDiet(f){currentDietFilter=f;renderDiet();}
+function setRecipeCat(c){selectedRecipeCat=c;renderRecipe();}
+function setRecipeMeal(m){selectedRecipeMeal=m;renderRecipe();}
+function searchRecipe(term){if(!term){renderRecipe();return;}var filtered=recipes.filter(function(r){return r.name.indexOf(term)!==-1||r.desc.indexOf(term)!==-1;});var html='';filtered.forEach(function(r){html+='<div class="recipe-card" onclick="openRecipeModal(\''+r.id+'\')"><div class="rc-header"><span class="rc-name">'+r.name+'</span><span class="rc-cal">'+r.calorie+'千卡</span></div><div class="rc-desc">'+r.desc+'</div><div class="rc-tags"><span class="rc-tag">'+(r.cat==='chinese'?'中餐':'轻食')+'</span><span class="rc-tag">'+r.meal+'</span></div></div>';});if(filtered.length===0)html='<div style="text-align:center;padding:40px;color:#999">暂无匹配的菜谱</div>';document.querySelector('#recipe .recipe-target-bar').insertAdjacentHTML('afterend',html);document.querySelectorAll('#recipe .recipe-card').forEach(function(el,idx){if(idx>=filtered.length)el.style.display='none';});}
+function filterExercise(f){currentExFilter=f;renderExercise();}
+function getWaterCount(){var today=getTodayStr();return records.filter(function(r){return r.date===today&&r.name==='饮水'}).length;}
+
+function openAddFoodModal(meal){currentMealType=meal||'lunch';foodModalSelected={};foodModalCat='all';foodModalSearch='';document.getElementById('foodSearchInput').value='';renderFoodCategories();renderFoodListPanel();updateSelectedPreview();openModal('addFoodModal');}
+function renderFoodCategories(){var html='';foodCategories.forEach(function(c){html+='<div class="food-cat '+(foodModalCat===c.id?'active':'')+'" onclick="selectFoodCat(\''+c.id+'\')">'+c.icon+' '+c.name+'</div>';});document.getElementById('foodCategories').innerHTML=html;}
+function selectFoodCat(cat){foodModalCat=cat;document.getElementById('foodSearchInput').value='';foodModalSearch='';renderFoodCategories();renderFoodListPanel();}
+function searchFoodModal(){foodModalSearch=document.getElementById('foodSearchInput').value.toLowerCase();if(foodModalSearch)foodModalCat='all';renderFoodCategories();renderFoodListPanel();}
+function renderFoodListPanel(){
+  var cats=foodModalCat==='all'?foodCategories:foodCategories.filter(function(c){return c.id===foodModalCat;});
+  var html='';
+  cats.forEach(function(cat){
+    var catFoods=foods.filter(function(f){return f.cat===cat.id&&(foodModalSearch===''||f.name.toLowerCase().indexOf(foodModalSearch)!==-1);});
+    if(catFoods.length===0)return;
+    html+='<div class="food-cat-title">'+cat.icon+' '+cat.name+' <span>('+catFoods.length+')</span></div>';
+    catFoods.forEach(function(f){
+      var selected=foodModalSelected[f.id];
+      var portion=selected?selected.portion:100;
+      var cal=Math.round(f.cal*portion/100);
+      var color=cal<50?'#52C41A':cal<150?'#FAAD14':cal<300?'#FA8C16':'#FF4D4F';
+      html+='<div class="food-row '+(selected?'selected':'')+'" onclick="toggleFood(\''+f.id+'\')"><span class="fr-name">'+f.name+'</span><span class="fr-cal" style="color:'+color+'">'+f.cal+'千卡/100g</span><span class="fr-check">'+(selected?'✓':'')+'</span></div>';
+    });
+  });
+  if(!html)html='<p style="text-align:center;color:#999;padding:20px">未找到食物</p>';
+  document.getElementById('foodListPanel').innerHTML=html;
+}
+function toggleFood(id){if(foodModalSelected[id]){delete foodModalSelected[id];}else{var f=foods.find(function(x){return x.id===id});if(f)foodModalSelected[id]={food:f,portion:100};}renderFoodListPanel();updateSelectedPreview();}
+function updateSelectedPreview(){var count=Object.keys(foodModalSelected).length;var totalCal=0;Object.keys(foodModalSelected).forEach(function(fid){var item=foodModalSelected[fid];totalCal+=Math.round(item.food.cal*item.portion/100);});document.getElementById('selectedFoodsPreview').textContent=count>0?'已选 '+count+' 种 · 约 '+totalCal+' 千卡':'';document.getElementById('confirmAddBtn').disabled=count===0;}
+function confirmAddFoods(){
+  var count=Object.keys(foodModalSelected).length;if(count===0)return;
+  var now=new Date();var time=now.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});var today=getTodayStr();
+  Object.keys(foodModalSelected).forEach(function(fid){
+    var item=foodModalSelected[fid];var f=item.food;var portion=item.portion;
+    var cal=Math.round(f.cal*portion/100);
+    records.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),name:f.name,calorie:cal,weight:portion,mealType:currentMealType,p:parseFloat((f.p*portion/100).toFixed(1)),f:parseFloat((f.f*portion/100).toFixed(1)),c:parseFloat((f.c*portion/100).toFixed(1)),date:today,time:time,timestamp:Date.now()});
+  });
+  save();closeModal('addFoodModal');renderAll();showToast('已添加 '+count+' 种食物');
+}
+
+function openExerciseModal(id){selectedExercise=exercises.find(function(e){return e.id===id;});if(!selectedExercise)return;document.getElementById('exModalName').textContent=selectedExercise.name;document.getElementById('exModalIcon').textContent=selectedExercise.icon;document.getElementById('exModalMeta').textContent='MET '+selectedExercise.met;document.getElementById('exDurationSlider').value=30;document.getElementById('exDurationVal').textContent='30 分钟';calcExModalCal();openModal('exerciseModal');}
+function calcExModalCal(){var dur=parseInt(document.getElementById('exDurationSlider').value);document.getElementById('exDurationVal').textContent=dur+' 分钟';var cal=Math.round(selectedExercise.met*profile.weight*(dur/60));document.getElementById('exCalPreview').textContent=cal;}
+function confirmExercise(){var dur=parseInt(document.getElementById('exDurationSlider').value);var cal=Math.round(selectedExercise.met*profile.weight*(dur/60));exRecords.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),name:selectedExercise.name,met:selectedExercise.met,duration:dur,calorie:cal,date:getTodayStr(),time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),timestamp:Date.now()});save();closeModal('exerciseModal');renderAll();showToast('运动记录成功');}
+
+function openRecipeModal(id){var r=recipes.find(function(x){return x.id===id});if(!r)return;document.getElementById('rcModalName').textContent=r.name;var html='<div style="padding:16px"><div style="font-size:12px;color:#999;margin-bottom:12px">'+r.desc+'</div><div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"><span style="background:#FA8C16;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px">'+r.calorie+'千卡</span><span style="background:#E3F2FD;padding:4px 10px;border-radius:12px;font-size:11px">'+(r.cat==='chinese'?'中餐':'轻食')+'</span><span style="background:#F5F5F5;padding:4px 10px;border-radius:12px;font-size:11px">🕐 '+r.cookTime+'分钟</span></div><div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">营养成分</div><div style="display:flex;gap:8px"><div style="flex:1;background:#e8f5e9;padding:8px;border-radius:8px;text-align:center"><div style="font-size:14px;font-weight:700;color:#4CAF50">'+r.p+'g</div><div style="font-size:10px;color:#999">蛋白质</div></div><div style="flex:1;background:#fff7e6;padding:8px;border-radius:8px;text-align:center"><div style="font-size:14px;font-weight:700;color:#FAAD14">'+r.f+'g</div><div style="font-size:10px;color:#999">脂肪</div></div><div style="flex:1;background:#e3f2fd;padding:8px;border-radius:8px;text-align:center"><div style="font-size:14px;font-weight:700;color:#1677FF">'+r.c+'g</div><div style="font-size:10px;color:#999">碳水</div></div></div></div><div style="margin-bottom:16px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">制作方法</div><div style="font-size:12px;color:#666;line-height:1.8;background:#FFF7E6;padding:12px;border-radius:8px;white-space:pre-line">'+r.method+'</div></div><button class="btn btn-orange" onclick="addToMealPlan(\''+r.id+'\');closeModal(\'recipeModal\')">加入定制餐单</button><button class="btn btn-outline" style="margin-top:8px" onclick="addRecipeToRecord(\''+r.id+'\');closeModal(\'recipeModal\')">直接加入今日记录</button></div>';document.getElementById('rcModalBody').innerHTML=html;openModal('recipeModal');}
+function addRecipeToRecord(id){var r=recipes.find(function(x){return x.id===id});if(!r)return;records.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),name:r.name,calorie:r.cal,weight:100,mealType:r.meal,p:r.p,f:r.f,c:r.c,date:getTodayStr(),time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),timestamp:Date.now()});save();renderAll();showToast('已添加 '+r.name);}
+
+function addToMealPlan(id){var r=recipes.find(function(x){return x.id===id});if(!r)return;pendingAddRecipe=r;var today=new Date();var input=document.getElementById('dateSelectorInput');var min=new Date(today);min.setDate(min.getDate()-7);var max=new Date(today);max.setDate(max.getDate()+7);input.min=formatDate(min);input.max=formatDate(max);input.value=getTodayStr();document.getElementById('dateSelectorText').textContent='将 "'+r.name+'" 添加到哪天的餐单？';openModal('dateSelectorModal');}
+function confirmAddToMealPlan(){if(!pendingAddRecipe)return;var dateStr=document.getElementById('dateSelectorInput').value;if(!dateStr){showToast('请选择日期');return;}var dayPlan=savedMealPlans.find(function(p){return p.date===dateStr});var existing=dayPlan?dayPlan.recipes:[];if(existing.find(function(r){return r.id===pendingAddRecipe.id})){showToast('该菜谱已在所选日期的餐单中');return;}var newRecipes=existing.concat([pendingAddRecipe]);savedMealPlans=savedMealPlans.filter(function(p){return p.date!==dateStr});savedMealPlans.push({date:dateStr,recipes:newRecipes});if(dateStr===selectedPlanDate)selectedPlanDate=dateStr;save();closeModal('dateSelectorModal');renderAll();showToast('已添加到 '+dateStr+' 的餐单');}
+
+function openMealPlanModal(){selectedPlanDate=getTodayStr();document.getElementById('mealPlanDate').value=selectedPlanDate;loadMealPlanForDate();openModal('mealPlanModal');}
+function loadMealPlanForDate(){var dateStr=document.getElementById('mealPlanDate').value;selectedPlanDate=dateStr;var dayPlan=savedMealPlans.find(function(p){return p.date===dateStr});var planRecipes=dayPlan?dayPlan.recipes:[];var html='';if(planRecipes.length===0){html='<div style="text-align:center;padding:40px 0;color:#999"><div style="font-size:40px;margin-bottom:8px">📋</div><p>餐单为空</p><p style="font-size:11px;margin-top:4px">浏览菜谱，点击"加入餐单"开始定制</p></div>';}else{var totalCal=planRecipes.reduce(function(s,r){return s+r.calorie},0);var totalP=planRecipes.reduce(function(s,r){return s+r.p},0);var totalF=planRecipes.reduce(function(s,r){return s+r.f},0);var totalC=planRecipes.reduce(function(s,r){return s+r.c},0);html+='<div class="plan-summary"><div class="ps-item"><div class="ps-val" style="color:#FA8C16">'+totalCal+'</div><div class="ps-lbl">千卡</div></div><div class="ps-item"><div class="ps-val" style="color:#1677FF">'+totalP+'g</div><div class="ps-lbl">蛋白质</div></div><div class="ps-item"><div class="ps-val" style="color:#FAAD14">'+totalF+'g</div><div class="ps-lbl">脂肪</div></div><div class="ps-item"><div class="ps-val" style="color:#52C41A">'+totalC+'g</div><div class="ps-lbl">碳水</div></div></div>';planRecipes.forEach(function(r){html+='<div class="plan-recipe"><div class="pr-info"><div class="pr-name">'+r.name+'</div><div class="pr-tags"><span class="pr-tag">'+(r.cat==='chinese'?'中餐':'轻食')+'</span><span class="pr-tag">'+r.meal+'</span></div><div class="pr-cal">'+r.calorie+'千卡 | 蛋白质'+r.p+'g 脂肪'+r.f+'g 碳水'+r.c+'g</div></div><button class="pr-remove" onclick="removeFromMealPlan(\''+r.id+'\')">&times;</button></div>';});}document.getElementById('mealPlanContent').innerHTML=html;}
+function removeFromMealPlan(id){var dateStr=document.getElementById('mealPlanDate').value;var dayPlan=savedMealPlans.find(function(p){return p.date===dateStr});if(!dayPlan)return;dayPlan.recipes=dayPlan.recipes.filter(function(r){return r.id!==id});save();loadMealPlanForDate();showToast('已移除');}
+function saveMealPlan(){showToast('餐单已保存');closeModal('mealPlanModal');renderAll();}
+function switchToCalendar(){closeModal('mealPlanModal');openCalendar();}
+
+function openCalendar(){calYear=new Date().getFullYear();calMonth=new Date().getMonth()+1;selectedCalDate=getTodayStr();generateCalendarDays();openModal('calendarModal');}
+function closeCalendar(){closeModal('calendarModal');}
+function generateCalendarDays(){
+  var firstDay=new Date(calYear,calMonth-1,1);var lastDay=new Date(calYear,calMonth,0);var daysInMonth=lastDay.getDate();var startDay=firstDay.getDay();startDay=startDay===0?6:startDay-1;
+  var today=getTodayStr();var days=[];
+  for(var i=0;i<startDay;i++)days.push({date:'',day:'',isPadding:true});
+  for(var d=1;d<=daysInMonth;d++){
+    var dateStr=calYear+'-'+String(calMonth).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var dayPlan=savedMealPlans.find(function(p){return p.date===dateStr});
+    var hasPlan=dayPlan&&dayPlan.recipes&&dayPlan.recipes.length>0;
+    var totalCal=hasPlan?dayPlan.recipes.reduce(function(s,r){return s+r.calorie},0):0;
+    var count=hasPlan?dayPlan.recipes.length:0;
+    days.push({date:dateStr,day:d,isPadding:false,isToday:dateStr===today,hasPlan:hasPlan,recipeCount:count,totalCal:totalCal});
+  }
+  document.getElementById('calMonthTitle').textContent=calYear+'年'+calMonth+'月';
+  var html='';days.forEach(function(day){if(day.isPadding){html+='<div class="cal-day-cell"><div class="cal-day empty"></div></div>';}else{html+='<div class="cal-day-cell"><div class="cal-day '+(day.isToday?'today':'')+' '+(selectedCalDate===day.date?'selected':'')+' '+(day.hasPlan?'has-plan':'')+'" onclick="onCalDateTap(\''+day.date+'\')"><div class="cal-day-num">'+day.day+'</div>'+(day.hasPlan?'<div class="cal-badge">'+day.recipeCount+'道 '+day.totalCal+'千卡</div>':'')+'</div></div>';}});document.getElementById('calGrid').innerHTML=html;document.getElementById('calDayDetail').innerHTML='';}
+function onCalDateTap(dateStr){if(!dateStr)return;selectedCalDate=dateStr;generateCalendarDays();var dayPlan=savedMealPlans.find(function(p){return p.date===dateStr});var html='';if(dayPlan&&dayPlan.recipes&&dayPlan.recipes.length>0){html+='<div class="day-plan-detail"><div class="day-plan-header"><span class="day-plan-title">'+dateStr+' 餐单</span><span class="day-plan-delete" onclick="deleteCalDayPlan()">删除</span></div>';dayPlan.recipes.forEach(function(r){html+='<div class="day-recipe"><span class="dr-name">'+r.name+'</span><span class="dr-cal">'+r.calorie+'千卡</span></div>';});html+='<button class="day-plan-btn" onclick="addCalDayToRecords()">添加到今日记录</button></div>';}else{html+='<div style="text-align:center;padding:20px;color:#999;font-size:12px">'+dateStr+' 暂无餐单</div>';}document.getElementById('calDayDetail').innerHTML=html;}
+function calPrevMonth(){if(calMonth===1){calYear--;calMonth=12;}else{calMonth--;}generateCalendarDays();}
+function calNextMonth(){if(calMonth===12){calYear++;calMonth=1;}else{calMonth++;}generateCalendarDays();}
+function deleteCalDayPlan(){if(!selectedCalDate)return;savedMealPlans=savedMealPlans.filter(function(p){return p.date!==selectedCalDate});save();generateCalendarDays();document.getElementById('calDayDetail').innerHTML='';showToast('已删除');}
+function addCalDayToRecords(){var dayPlan=savedMealPlans.find(function(p){return p.date===selectedCalDate});if(!dayPlan||!dayPlan.recipes)return;var now=new Date();var dateStr=getTodayStr();var timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');var mealMap={breakfast:'breakfast',lunch:'lunch',dinner:'dinner'};dayPlan.recipes.forEach(function(r){records.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),name:r.name,calorie:r.cal,weight:100,mealType:mealMap[r.meal]||'lunch',p:r.p,f:r.f,c:r.c,date:dateStr,time:timeStr,timestamp:Date.now()});});save();renderAll();showToast('已添加到今日记录');}
+
+function openAddWeightModal(){document.getElementById('addWeightInput').value='';openModal('addWeightModal');}
+function saveWeight(){var w=parseFloat(document.getElementById('addWeightInput').value);if(!w||w<30||w>200){showToast('请输入有效体重');return;}weightRecords.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),weight:w,date:getTodayStr(),time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),timestamp:Date.now()});profile.weight=w;save();closeModal('addWeightModal');renderAll();showToast('体重记录成功');}
+
+function drawWeightChart(){var canvas=document.getElementById('weightChartSVG');if(!canvas)return;var ctx=canvas.getContext('2d');var w=canvas.width;var h=canvas.height;ctx.clearRect(0,0,w,h);var data=weightRecords.slice(-30).sort(function(a,b){return a.timestamp-b.timestamp;});if(data.length<2){ctx.fillStyle='#999';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('至少需要2条记录',w/2,h/2);return;}var minW=Math.min.apply(null,data.map(function(d){return d.weight}))-2;var maxW=Math.max.apply(null,data.map(function(d){return d.weight}))+2;var targetW=profile.targetWeight||52;var padding={top:20,right:20,bottom:30,left:40};var cw=w-padding.left-padding.right;var ch=h-padding.top-padding.bottom;ctx.strokeStyle='#f0f0f0';ctx.lineWidth=1;for(var i=0;i<=4;i++){var y=padding.top+(ch/4)*i;ctx.beginPath();ctx.moveTo(padding.left,y);ctx.lineTo(w-padding.right,y);ctx.stroke();ctx.fillStyle='#999';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText((maxW-(maxW-minW)/4*i).toFixed(0),padding.left-6,y+3);}var targetY=padding.top+((maxW-targetW)/(maxW-minW))*ch;if(targetY>padding.top&&targetY<h-padding.bottom){ctx.strokeStyle='#52C41A';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(padding.left,targetY);ctx.lineTo(w-padding.right,targetY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#52C41A';ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('目标',w-padding.right-20,targetY-4);}var points=data.map(function(d,i){return{x:padding.left+(i/(data.length-1))*cw,y:padding.top+((maxW-d.weight)/(maxW-minW))*ch};});ctx.strokeStyle='#1677FF';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();points.forEach(function(p,i){if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);});ctx.stroke();ctx.fillStyle='#1677FF';ctx.globalAlpha=0.3;ctx.beginPath();ctx.moveTo(points[0].x,h-padding.bottom);points.forEach(function(p){ctx.lineTo(p.x,p.y);});ctx.lineTo(points[points.length-1].x,h-padding.bottom);ctx.fill();ctx.globalAlpha=1;points.forEach(function(p){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,4,0,2*Math.PI);ctx.fill();ctx.fillStyle='#1677FF';ctx.beginPath();ctx.arc(p.x,p.y,3,0,2*Math.PI);ctx.fill();});}
+
+function drawCalorieChart(){var container=document.getElementById('calorieChart');if(!container)return;var goal=getTargetCal();var data=[];var today=new Date();for(var i=13;i>=0;i--){var d=new Date(today);d.setDate(d.getDate()-i);var ds=formatDate(d);var recs=records.filter(function(r){return r.date===ds});var cal=recs.reduce(function(s,r){return s+r.calorie},0);data.push({label:(d.getMonth()+1)+'/'+d.getDate(),cal:cal});}var maxC=Math.max.apply(null,data.map(function(d){return d.cal}).concat([goal]));maxC=Math.ceil(maxC/100)*100;var html='';data.forEach(function(d){var h=Math.round(d.cal/maxC*100);html+='<div style="flex:1;display:flex;flex-direction:column;align-items:center"><div class="bar" style="width:100%;height:'+Math.max(h,2)+'%;background:'+((d.cal>goal?'linear-gradient(to top,#ff4757,#ff6b81)':'linear-gradient(to top,#4CAF50,#81C784)'))+'"><span class="bar-val">'+(d.cal>0?d.cal:'')+'</span></div><div class="bar-label">'+d.label+'</div></div>';});container.innerHTML=html;}
+
+function drawMacroChart(){var canvas=document.getElementById('macroChartCanvas');if(!canvas)return;var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);var today=getTodayStr();var recs=records.filter(function(r){return r.date===today});var p=recs.reduce(function(s,r){return s+(r.p||0)},0);var f=recs.reduce(function(s,r){return s+(r.f||0)},0);var c=recs.reduce(function(s,r){return s+(r.c||0)},0);var total=p+f+c;if(total===0){ctx.fillStyle='#999';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('暂无数据',canvas.width/2,canvas.height/2);return;}var cx=canvas.width/2;var cy=canvas.height/2;var r=50;var items=[{name:'蛋白质',val:p,color:'#FF6B6B'},{name:'脂肪',val:f,color:'#FFD93D'},{name:'碳水',val:c,color:'#6BCB77'}];var startAngle=0;items.forEach(function(item){var angle=(item.val/total)*2*Math.PI;ctx.fillStyle=item.color;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,startAngle,startAngle+angle);ctx.fill();startAngle+=angle;});ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,30,0,2*Math.PI);ctx.fill();ctx.fillStyle='#333';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText(total.toFixed(0)+'g',cx,cy+4);ctx.fillStyle='#666';ctx.font='10px sans-serif';var ly=canvas.height-10;var lx=20;items.forEach(function(item){ctx.fillStyle=item.color;ctx.fillRect(lx,ly-6,10,10);ctx.fillStyle='#666';ctx.textAlign='left';ctx.fillText(item.name+' '+(item.val/total*100).toFixed(0)+'%',lx+14,ly+2);lx+=80;});}
+
+function calcAchievement(){var div=document.getElementById('achievementStats');if(!div)return;var goal=getTargetCal();var calOk=0,exOk=0,waterOk=0;var today=new Date();for(var i=0;i<14;i++){var d=new Date(today);d.setDate(d.getDate()-i);var ds=formatDate(d);var recs=records.filter(function(r){return r.date===ds});var cal=recs.reduce(function(s,r){return s+r.calorie},0);if(cal>0&&cal<=goal*1.1)calOk++;var ex=exRecords.filter(function(r){return r.date===ds});if(ex.length>0&&ex.reduce(function(s,r){return s+r.calorie},0)>100)exOk++;var wCount=recs.filter(function(r){return r.name==='饮水'}).length;if(wCount>=8)waterOk++;}div.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div style="background:#fff;border-radius:10px;padding:12px;text-align:center"><div style="font-size:20px;font-weight:700;color:#4CAF50">'+Math.round(calOk/14*100)+'%</div><div style="font-size:10px;color:#999">热量达标</div></div><div style="background:#fff;border-radius:10px;padding:12px;text-align:center"><div style="font-size:20px;font-weight:700;color:#2196F3">'+Math.round(exOk/14*100)+'%</div><div style="font-size:10px;color:#999">运动达标</div></div><div style="background:#fff;border-radius:10px;padding:12px;text-align:center"><div style="font-size:20px;font-weight:700;color:#FF9800">'+Math.round(waterOk/14*100)+'%</div><div style="font-size:10px;color:#999">饮水达标</div></div></div>';}
+
+function generateAiSuggestion(total,goal,p,f,c,tdee){if(total===0)return null;if(total>goal*1.2)return'今日摄入超标'+Math.round(total-goal)+'千卡，建议晚餐选择清淡食物，如蔬菜沙拉或清汤，避免高油高糖食物。';if(total<goal*0.6)return'今日摄入偏低，建议适当补充坚果、水果或牛奶，确保营养均衡。';if(p<20)return'蛋白质摄入偏低，建议补充鸡胸肉、鸡蛋或豆制品。';if(f>50)return'脂肪摄入偏高，建议下一餐减少油炸食品。';return'今日饮食均衡，建议继续保持。下一餐可搭配粗粮和新鲜蔬菜。';}
+
+function addPlanRecipeToRecord(id){var today=getTodayStr();var dayPlan=savedMealPlans.find(function(p){return p.date===today});if(!dayPlan)return;var recipe=dayPlan.recipes.find(function(r){return r.id===id});if(!recipe)return;var now=new Date();var timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');records.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),name:recipe.name,calorie:recipe.cal,weight:100,mealType:recipe.meal,p:recipe.p,f:recipe.f,c:recipe.c,date:today,time:timeStr,timestamp:Date.now()});save();renderAll();showToast('已添加 '+recipe.name);}
+
+function calcStreak(){var streak=0;var today=new Date();for(var i=0;i<365;i++){var d=new Date(today);d.setDate(d.getDate()-i);var ds=formatDate(d);var has=checkins.some(function(c){return c.date===ds;});if(has)streak++;else break;}return streak;}
+function calcPoints(){return checkins.length*10;}
+function doCheckIn(){var today=getTodayStr();var exists=checkins.some(function(c){return c.date===today;});if(exists){showToast('今天已打卡');return;}checkins.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),date:today,points:10,timestamp:Date.now()});save();renderAll();showToast('打卡成功 +10积分');}
+function editProfile(){showToast('编辑功能开发中');}
+
+init();
+</script>
+</body>
+</html>

@@ -1,12 +1,25 @@
 <view class="container">
-  <!-- Header Greeting -->
   <view class="greeting">
     <text class="greeting-text" wx:if="{{nickname}}">你好，{{nickname}}</text>
     <text class="greeting-text" wx:else>你好</text>
     <text class="streak-badge" wx:if="{{streak > 0}}">🔥 {{streak}}天</text>
   </view>
 
-  <!-- Calorie Ring -->
+  <view class="week-nav">
+    <text class="week-arrow" bindtap="goPrevWeek">‹</text>
+    <scroll-view class="week-dates" scroll-x="{{true}}" scroll-into-view="week-{{today}}">
+      <view class="week-date {{item.isToday ? 'today' : ''}} {{today === item.date ? 'selected' : ''}}" wx:for="{{weekDates}}" wx:key="date" id="week-{{item.date}}" bindtap="selectDate" data-date="{{item.date}}">
+        <text class="week-day">{{item.dayName}}</text>
+        <text class="week-num">{{item.dayNum}}</text>
+      </view>
+    </scroll-view>
+    <text class="week-arrow" bindtap="goNextWeek">›</text>
+  </view>
+
+  <view class="target-mode" wx:if="{{targetModeText}}">
+    <text class="target-badge {{targetMode}}">{{targetModeText}}</text>
+  </view>
+
   <view class="header-card">
     <view class="calorie-ring-container">
       <canvas type="2d" id="calorieRing" class="calorie-ring"></canvas>
@@ -17,7 +30,6 @@
       </view>
     </view>
 
-    <!-- Macros -->
     <view class="macro-row">
       <view class="macro-chip protein">
         <text class="macro-val">{{macros.protein}}g</text>
@@ -49,9 +61,38 @@
         <text class="stat-label">完成</text>
       </view>
     </view>
+
+    <view class="calorie-detail-row">
+      <view class="detail-item">
+        <text class="detail-label">基础消耗</text>
+        <text class="detail-value">{{tdee}}千卡</text>
+      </view>
+      <view class="detail-item">
+        <text class="detail-label">热量缺口</text>
+        <text class="detail-value {{calorieGap >= 0 ? 'positive' : 'negative'}}">{{calorieGap >= 0 ? '+' : ''}}{{calorieGap}}千卡</text>
+      </view>
+    </view>
   </view>
 
-  <!-- Water Intake -->
+  <view class="quick-entry-grid">
+    <view class="quick-entry" bindtap="goToEvaluation">
+      <text class="entry-icon">📊</text>
+      <text class="entry-name">健康评估</text>
+    </view>
+    <view class="quick-entry" bindtap="goToCheckin">
+      <text class="entry-icon">📅</text>
+      <text class="entry-name">打卡中心</text>
+    </view>
+    <view class="quick-entry" bindtap="goToWeight">
+      <text class="entry-icon">⚖️</text>
+      <text class="entry-name">体重管理</text>
+    </view>
+    <view class="quick-entry" bindtap="goToFoodDatabase">
+      <text class="entry-icon">🔍</text>
+      <text class="entry-name">食物库</text>
+    </view>
+  </view>
+
   <view class="water-card">
     <view class="water-header">
       <text class="water-title">💧 饮水记录</text>
@@ -68,7 +109,6 @@
     </view>
   </view>
 
-  <!-- AI Suggestion -->
   <view class="ai-card" wx:if="{{aiSuggestion}}">
     <view class="ai-header">
       <text class="ai-title">🤖 AI 智能建议</text>
@@ -89,7 +129,15 @@
     <text class="ai-loading-text">🤖 AI 正在生成建议...</text>
   </view>
 
-  <!-- Quick Add -->
+  <view class="ai-banner" bindtap="goFoodRecognition">
+    <text class="ai-banner-icon">📷</text>
+    <view class="ai-banner-content">
+      <text class="ai-banner-title">AI 拍照识食物</text>
+      <text class="ai-banner-desc">拍照即可自动识别食物热量</text>
+    </view>
+    <text class="ai-banner-arrow">›</text>
+  </view>
+
   <view class="quick-add-section">
     <text class="section-title">快速添加</text>
     <view class="meal-buttons">
@@ -116,7 +164,6 @@
     </view>
   </view>
 
-  <!-- Records -->
   <view class="records-section">
     <view class="section-header">
       <text class="section-title">今日记录</text>
@@ -142,7 +189,6 @@
                 <text class="record-detail" wx:if="{{item.macro}}">蛋{{item.macro.protein}}g 脂{{item.macro.fat}}g 碳{{item.macro.carbs}}g</text>
                 <text class="record-detail" wx:else>{{item.portion}}{{item.portionUnit}} · {{item.calorie}}千卡</text>
               </view>
-              <text class="record-time">{{format.formatTime(item.createdAt)}}</text>
               <view class="delete-btn" data-id="{{item.id}}" bindtap="deleteRecord">
                 <text>删除</text>
               </view>

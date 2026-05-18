@@ -6,7 +6,79 @@
       </view>
       <view class="avatar-info">
         <input class="nickname-input" placeholder="输入你的昵称" value="{{nickname}}" bindinput="onNicknameInput" />
+        <text class="target-badge {{target}}">{{targets[0].value === target ? '减脂' : (targets[1].value === target ? '维持' : '增肌')}}</text>
       </view>
+    </view>
+  </view>
+
+  <view class="stats-card">
+    <view class="stat-item">
+      <text class="stat-value">{{totalRecords}}</text>
+      <text class="stat-label">记录次数</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{healthyDays}}</text>
+      <text class="stat-label">健康天数</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{totalWeightLoss}}</text>
+      <text class="stat-label">累计减重(斤)</text>
+    </view>
+  </view>
+
+  <view class="achievement-card">
+    <view class="section-title">近14天达标比例</view>
+    <view class="achievement-grid">
+      <view class="achievement-item">
+        <view class="ring-container">
+          <canvas type="2d" id="calorieRing" class="mini-ring" style="width: 120rpx; height: 120rpx;"></canvas>
+          <view class="ring-center">
+            <text class="ring-value">{{achievementRate.calorieRate}}%</text>
+          </view>
+        </view>
+        <text class="achievement-label">热量达标</text>
+      </view>
+      <view class="achievement-item">
+        <view class="ring-container">
+          <canvas type="2d" id="exerciseRing" class="mini-ring" style="width: 120rpx; height: 120rpx;"></canvas>
+          <view class="ring-center">
+            <text class="ring-value">{{achievementRate.exerciseRate}}%</text>
+          </view>
+        </view>
+        <text class="achievement-label">运动达标</text>
+      </view>
+      <view class="achievement-item">
+        <view class="ring-container">
+          <canvas type="2d" id="waterRing" class="mini-ring" style="width: 120rpx; height: 120rpx;"></canvas>
+          <view class="ring-center">
+            <text class="ring-value">{{achievementRate.waterRate}}%</text>
+          </view>
+        </view>
+        <text class="achievement-label">饮水达标</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="quick-entry-section">
+    <view class="quick-entry" bindtap="goToStatistics">
+      <text class="entry-icon">📊</text>
+      <text class="entry-name">数据统计</text>
+      <text class="entry-desc">查看近7天摄入趋势</text>
+    </view>
+    <view class="quick-entry" bindtap="goToWeight">
+      <text class="entry-icon">⚖️</text>
+      <text class="entry-name">体重管理</text>
+      <text class="entry-desc">查看体重变化趋势</text>
+    </view>
+    <view class="quick-entry" bindtap="goToEvaluation">
+      <text class="entry-icon">📋</text>
+      <text class="entry-name">健康评估</text>
+      <text class="entry-desc">综合评分和建议</text>
+    </view>
+    <view class="quick-entry" bindtap="goToCheckin">
+      <text class="entry-icon">📅</text>
+      <text class="entry-name">打卡中心</text>
+      <text class="entry-desc">连续打卡、积分徽章</text>
     </view>
   </view>
 

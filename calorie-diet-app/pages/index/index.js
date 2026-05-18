@@ -1,5 +1,6 @@
 const dataStore = require('../../utils/data-store');
 const format = require('../../utils/format');
+const calorie = require('../../utils/calorie');
 const constants = require('../../utils/constants');
 const aiSuggestion = require('../../services/ai-suggestion');
 
@@ -21,10 +22,21 @@ Page({
     aiSuggestion: null,
     aiLoading: false,
     streak: 0,
-    nickname: ''
+    nickname: '',
+    weekDates: [],
+    weekStart: '',
+    currentWeekStart: '',
+    targetMode: '',
+    targetModeText: '',
+    bmr: 0,
+    tdee: 0,
+    calorieGap: 0,
+    showWeekNav: false,
+    baseCalorie: 0
   },
 
   onLoad: function() {
+    this.initWeekDates();
     this.loadTodayData();
   },
 
@@ -33,9 +45,78 @@ Page({
     this.loadAiSuggestion();
   },
 
+  initWeekDates: function() {
+    var today = new Date();
+    var dayOfWeek = today.getDay();
+    var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    var startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - diff);
+
+    var weekDates = [];
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      var dateStr = format.formatDate(d);
+      var dayName = format.getDayName(dateStr);
+      weekDates.push({
+        date: dateStr,
+        dayName: dayName,
+        dayNum: d.getDate(),
+        isToday: format.isToday(dateStr)
+      });
+    }
+
+    this.setData({
+      weekDates: weekDates,
+      weekStart: format.formatDate(startOfWeek),
+      currentWeekStart: format.formatDate(startOfWeek)
+    });
+  },
+
+  goPrevWeek: function() {
+    var currentStart = new Date(this.data.currentWeekStart);
+    currentStart.setDate(currentStart.getDate() - 7);
+    this.updateWeekDates(currentStart);
+  },
+
+  goNextWeek: function() {
+    var currentStart = new Date(this.data.currentWeekStart);
+    currentStart.setDate(currentStart.getDate() + 7);
+    var today = new Date();
+    if (currentStart > today) return;
+    this.updateWeekDates(currentStart);
+  },
+
+  updateWeekDates: function(startOfWeek) {
+    var weekDates = [];
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      var dateStr = format.formatDate(d);
+      var dayName = format.getDayName(dateStr);
+      weekDates.push({
+        date: dateStr,
+        dayName: dayName,
+        dayNum: d.getDate(),
+        isToday: format.isToday(dateStr)
+      });
+    }
+
+    this.setData({
+      weekDates: weekDates,
+      currentWeekStart: format.formatDate(startOfWeek)
+    });
+  },
+
+  selectDate: function(e) {
+    var date = e.currentTarget.dataset.date;
+    this.setData({ today: date });
+    this.loadTodayData();
+  },
+
   loadTodayData: function() {
     var settings = dataStore.getUserSettings();
-    var today = format.formatDate(new Date());
+    var today = this.data.today;
     var records = dataStore.getRecordsByDate(today);
     var macroSummary = dataStore.getTodayMacroSummary();
     var waterCount = dataStore.getTodayWaterCount();
@@ -48,6 +129,12 @@ Page({
     var percentage = Math.min((total / goal) * 100, 100);
 
     var grouped = this.groupRecordsByMeal(records);
+
+    var bmr = calorie.calculateBMR(settings.gender || 'female', settings.weight || 55, settings.height || 160, settings.age || 25);
+    var tdee = calorie.calculateTDEE(bmr, settings.activityLevel || 1.2);
+    var calorieGap = tdee - total;
+
+    var targetMap = { fat: '减脂模式', keep: '维持模式', muscle: '增肌模式' };
 
     this.setData({
       todayTotal: format.formatCalories(total),
@@ -63,7 +150,13 @@ Page({
       waterGoal: settings.waterGoal || constants.DEFAULT_WATER_GOAL,
       exerciseCalories: exerciseCal,
       streak: streak,
-      nickname: settings.nickname || ''
+      nickname: settings.nickname || '',
+      targetMode: settings.target || 'keep',
+      targetModeText: targetMap[settings.target] || '维持模式',
+      bmr: Math.round(bmr),
+      tdee: Math.round(tdee),
+      calorieGap: Math.round(calorieGap),
+      baseCalorie: Math.round(tdee)
     });
 
     this.drawRing(percentage);
@@ -213,5 +306,25 @@ Page({
 
   goToStatistics: function() {
     wx.navigateTo({ url: '/pages/statistics/statistics' });
+  },
+
+  goToRecipe: function() {
+    wx.navigateTo({ url: '/pages/recipe/recipe' });
+  },
+
+  goFoodRecognition: function() {
+    wx.switchTab({ url: '/pages/food-recognition/food-recognition' });
+  },
+
+  goToEvaluation: function() {
+    wx.navigateTo({ url: '/pages/evaluation/evaluation' });
+  },
+
+  goToCheckin: function() {
+    wx.navigateTo({ url: '/pages/checkin/checkin' });
+  },
+
+  goToFoodDatabase: function() {
+    wx.navigateTo({ url: '/pages/food-database/food-database' });
   }
 });

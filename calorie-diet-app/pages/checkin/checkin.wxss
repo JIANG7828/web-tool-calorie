@@ -1,0 +1,197 @@
+.container {
+  padding: 20rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.header {
+  margin-bottom: 20rpx;
+}
+
+.streak-card {
+  background: linear-gradient(135deg, #FF6B35, #FF8E53);
+  border-radius: 24rpx;
+  padding: 40rpx;
+  text-align: center;
+  color: #fff;
+}
+
+.streak-number {
+  font-size: 80rpx;
+  font-weight: bold;
+}
+
+.streak-label {
+  font-size: 28rpx;
+  opacity: 0.9;
+  margin-bottom: 20rpx;
+}
+
+.total-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 24rpx;
+  opacity: 0.8;
+}
+
+.points {
+  font-weight: bold;
+}
+
+.checkin-section {
+  margin-bottom: 20rpx;
+}
+
+.checkin-btn {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.checkin-btn.checked {
+  background: #e8f5e9;
+}
+
+.checkin-icon {
+  font-size: 60rpx;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.checkin-text {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: bold;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.stat-item {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx 12rpx;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.stat-value {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #4CAF50;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.stat-label {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  padding-left: 10rpx;
+}
+
+.badges-section {
+  margin-bottom: 20rpx;
+}
+
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+}
+
+.badge-item {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.badge-item.unlocked {
+  background: linear-gradient(135deg, #fff9c4, #fff176);
+}
+
+.badge-item.locked {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
+.badge-icon {
+  font-size: 48rpx;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.badge-name {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.badge-desc {
+  font-size: 20rpx;
+  color: #666;
+  display: block;
+}
+
+.history-section, .points-section {
+  margin-bottom: 20rpx;
+}
+
+.history-list, .points-list {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.history-item, .points-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.history-item:last-child, .points-item:last-child {
+  border-bottom: none;
+}
+
+.history-date, .points-date {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.history-points, .points-value {
+  font-size: 26rpx;
+  color: #FF6B35;
+  font-weight: bold;
+}
+
+.points-type {
+  font-size: 26rpx;
+  color: #333;
+  flex: 1;
+}
+
+.empty-tip {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 40rpx 0;
+}

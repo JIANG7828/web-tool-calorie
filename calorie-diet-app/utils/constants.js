@@ -31,8 +31,6 @@ module.exports = {
     { id: 'snack', name: '零食', icon: '🍪' },
     { id: 'chinese_dish', name: '中式菜肴', icon: '🥘' },
     { id: 'soup', name: '汤类', icon: '🍲' },
-    { id: 'fast_food', name: '快餐', icon: '🍔' },
-    { id: 'brand_drink', name: '品牌饮品', icon: '🧋' },
   ],
 
   WEIGHT_GOALS: {

@@ -1,0 +1,72 @@
+<view class="container">
+  <view class="header">
+    <view class="streak-card">
+      <view class="streak-number">{{streak}}</view>
+      <view class="streak-label">连续打卡天数</view>
+      <view class="total-info">
+        <text>累计打卡 {{totalDays}} 天</text>
+        <text class="points">积分: {{totalPoints}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="checkin-section">
+    <view class="checkin-btn {{todayChecked ? 'checked' : ''}}" bindtap="onCheckin">
+      <text class="checkin-icon">{{todayChecked ? '✓' : '📅'}}</text>
+      <text class="checkin-text">{{todayChecked ? '今日已打卡' : '点击打卡'}}</text>
+    </view>
+  </view>
+
+  <view class="stats-grid">
+    <view class="stat-item">
+      <text class="stat-value">{{todayWater}}</text>
+      <text class="stat-label">今日饮水/杯</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{todayGoalMet ? '✓' : '○'}}</text>
+      <text class="stat-label">热量达标</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{totalExercise}}</text>
+      <text class="stat-label">累计运动/次</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{totalRecords}}</text>
+      <text class="stat-label">累计记录/次</text>
+    </view>
+  </view>
+
+  <view class="badges-section">
+    <view class="section-title">徽章墙 ({{unlockedBadges.length}}/{{badges.length}})</view>
+    <view class="badges-grid">
+      <view class="badge-item {{unlockedBadges.indexOf(badge.id) !== -1 ? 'unlocked' : 'locked'}}" wx:for="{{badges}}" wx:key="id">
+        <text class="badge-icon">{{badge.icon}}</text>
+        <text class="badge-name">{{badge.name}}</text>
+        <text class="badge-desc">{{badge.desc}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="history-section">
+    <view class="section-title">最近打卡记录</view>
+    <view class="history-list">
+      <view class="history-item" wx:for="{{checkinHistory}}" wx:key="id">
+        <text class="history-date">{{item.date}}</text>
+        <text class="history-points">+{{item.points}}积分</text>
+      </view>
+      <view class="empty-tip" wx:if="{{checkinHistory.length === 0}}">暂无打卡记录</view>
+    </view>
+  </view>
+
+  <view class="points-section">
+    <view class="section-title">积分记录</view>
+    <view class="points-list">
+      <view class="points-item" wx:for="{{pointsHistory}}" wx:key="id">
+        <text class="points-type">{{item.type}}</text>
+        <text class="points-date">{{item.date}}</text>
+        <text class="points-value">+{{item.points}}</text>
+      </view>
+      <view class="empty-tip" wx:if="{{pointsHistory.length === 0}}">暂无积分记录</view>
+    </view>
+  </view>
+</view>
